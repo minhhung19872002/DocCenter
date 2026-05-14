@@ -1,15 +1,19 @@
 import * as React from 'react';
 import {
   Stack, Label, TextField, PrimaryButton, DefaultButton, IconButton,
-  MessageBar, MessageBarType, Dialog, DialogType, DialogFooter
+  MessageBar, MessageBarType, Dialog, DialogType, DialogFooter,
+  Pivot, PivotItem
 } from '@fluentui/react';
 import { IHashtag } from '../services/types';
 import { SharePointService } from '../services/SharePointService';
+import { DocTagsEditor } from './DocTagsEditor';
 import styles from './DocCenter.module.scss';
 
 interface IProps {
   hashtagsListTitle: string;
+  libraryTitle: string;
   hashtags: IHashtag[];
+  siteUrl: string;
   onChange: () => Promise<void>;
 }
 
@@ -64,7 +68,7 @@ export class Admin extends React.Component<IProps, IState> {
     this.setState({ deletingId: undefined });
   }, 'Hashtag deleted.');
 
-  public render(): React.ReactElement {
+  private renderHashtagManager(): React.ReactElement {
     const { newTag, filter, editingId, editingValue, deletingId, status, busy } = this.state;
     const sorted = [...this.props.hashtags].sort((a, b) => a.Title.localeCompare(b.Title));
     const filtered = sorted.filter(t => !filter || t.Title.toLowerCase().includes(filter.toLowerCase()));
@@ -152,6 +156,23 @@ export class Admin extends React.Component<IProps, IState> {
           </DialogFooter>
         </Dialog>
       </Stack>
+    );
+  }
+
+  public render(): React.ReactElement {
+    return (
+      <Pivot>
+        <PivotItem headerText="Manage hashtags" itemIcon="Tag">
+          {this.renderHashtagManager()}
+        </PivotItem>
+        <PivotItem headerText="Edit document tags" itemIcon="EditNote">
+          <DocTagsEditor
+            libraryTitle={this.props.libraryTitle}
+            hashtags={this.props.hashtags}
+            siteUrl={this.props.siteUrl}
+          />
+        </PivotItem>
+      </Pivot>
     );
   }
 }

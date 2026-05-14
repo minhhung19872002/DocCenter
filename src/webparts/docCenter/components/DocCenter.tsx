@@ -91,7 +91,9 @@ export class DocCenter extends React.Component<IDocCenterProps, IState> {
             <PivotItem headerText="Admin" itemIcon="Settings">
               <Admin
                 hashtagsListTitle={this.props.hashtagsListTitle}
+                libraryTitle={this.props.documentsLibraryTitle}
                 hashtags={hashtags}
+                siteUrl={this.props.siteUrl}
                 onChange={this.reloadHashtags}
               />
             </PivotItem>
