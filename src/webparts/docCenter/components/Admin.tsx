@@ -1,6 +1,6 @@
 import * as React from 'react';
 import {
-  Stack, Label, TextField, PrimaryButton, DefaultButton, IconButton,
+  Stack, TextField, PrimaryButton, DefaultButton, IconButton,
   MessageBar, MessageBarType, Dialog, DialogType, DialogFooter,
   Pivot, PivotItem
 } from '@fluentui/react';
@@ -75,25 +75,26 @@ export class Admin extends React.Component<IProps, IState> {
     const deletingTag = this.props.hashtags.find(t => t.Id === deletingId);
 
     return (
-      <Stack tokens={{ childrenGap: 12 }} className={styles.section}>
+      <Stack tokens={{ childrenGap: 16 }} className={styles.section}>
         <MessageBar messageBarType={MessageBarType.info}>
-          Renaming a hashtag updates it across all documents that use it (lookup field).
-          Deleting will remove the tag from all documents.
+          Renaming a hashtag updates it everywhere automatically. Deleting removes the tag from all documents that use it.
         </MessageBar>
 
-        <Stack horizontal tokens={{ childrenGap: 8 }} verticalAlign="end">
-          <Stack.Item grow>
-            <TextField
-              label="Add hashtag"
-              placeholder="e.g. invoice"
-              value={newTag}
-              onChange={(_, v) => this.setState({ newTag: v || '' })}
-              onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); void this.addTag(); } }}
-              disabled={busy}
-            />
-          </Stack.Item>
-          <PrimaryButton text="Add" iconProps={{ iconName: 'Add' }} onClick={this.addTag} disabled={busy || !newTag.trim()} />
-        </Stack>
+        <div className={styles.card}>
+          <Stack horizontal tokens={{ childrenGap: 8 }} verticalAlign="end">
+            <Stack.Item grow>
+              <TextField
+                label="Add hashtag"
+                placeholder="e.g. invoice"
+                value={newTag}
+                onChange={(_, v) => this.setState({ newTag: v || '' })}
+                onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); void this.addTag(); } }}
+                disabled={busy}
+              />
+            </Stack.Item>
+            <PrimaryButton text="Add" iconProps={{ iconName: 'Add' }} onClick={this.addTag} disabled={busy || !newTag.trim()} />
+          </Stack>
+        </div>
 
         {status && (
           <MessageBar messageBarType={status.type} onDismiss={() => this.setState({ status: undefined })}>
@@ -101,16 +102,21 @@ export class Admin extends React.Component<IProps, IState> {
           </MessageBar>
         )}
 
-        <Label>All hashtags ({sorted.length})</Label>
-        <TextField
-          placeholder="Filter..."
-          iconProps={{ iconName: 'Filter' }}
-          value={filter}
-          onChange={(_, v) => this.setState({ filter: v || '' })}
-        />
-
         <div>
-          {filtered.length === 0 && <div className={styles.muted}>No hashtags.</div>}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+            <span className={styles.sectionLabel}>All hashtags</span>
+            <span className={styles.countPill}>{sorted.length}</span>
+          </div>
+          <TextField
+            placeholder="Filter..."
+            iconProps={{ iconName: 'Filter' }}
+            value={filter}
+            onChange={(_, v) => this.setState({ filter: v || '' })}
+          />
+        </div>
+
+        <Stack tokens={{ childrenGap: 8 }}>
+          {filtered.length === 0 && <span className={styles.muted}>No hashtags.</span>}
           {filtered.map(h => (
             <div key={h.Id} className={styles.adminRow}>
               {editingId === h.Id ? (
@@ -137,7 +143,7 @@ export class Admin extends React.Component<IProps, IState> {
               )}
             </div>
           ))}
-        </div>
+        </Stack>
 
         <Dialog
           hidden={deletingId == null}

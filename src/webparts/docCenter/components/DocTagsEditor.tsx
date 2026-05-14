@@ -118,63 +118,69 @@ export class DocTagsEditor extends React.Component<IProps, IState> {
     );
 
     if (loading) {
-      return <Spinner size={SpinnerSize.large} label="Loading documents..." />;
+      return <Spinner size={SpinnerSize.large} label="Loading documents..." styles={{ root: { marginTop: 24 } }} />;
     }
 
     return (
-      <Stack tokens={{ childrenGap: 12 }} className={styles.section}>
+      <Stack tokens={{ childrenGap: 16 }} className={styles.section}>
         <MessageBar messageBarType={MessageBarType.info}>
-          Edit hashtags on any uploaded document. Changes are saved directly to the document item.
+          Edit hashtags on any uploaded document. Changes save instantly to the document item.
         </MessageBar>
 
-        <Stack horizontal tokens={{ childrenGap: 8 }} verticalAlign="end">
-          <Stack.Item grow>
-            <TextField
-              label="Find a document"
-              placeholder="Type part of the file name..."
-              iconProps={{ iconName: 'Search' }}
-              value={nameQuery}
-              onChange={(_, v) => this.setState({ nameQuery: v || '' })}
-            />
-          </Stack.Item>
-          <DefaultButton text="Refresh" iconProps={{ iconName: 'Refresh' }} onClick={this.reload} />
-        </Stack>
+        <div className={styles.card}>
+          <Stack horizontal tokens={{ childrenGap: 8 }} verticalAlign="end">
+            <Stack.Item grow>
+              <TextField
+                label="Find a document"
+                placeholder="Type part of the file name..."
+                iconProps={{ iconName: 'Search' }}
+                value={nameQuery}
+                onChange={(_, v) => this.setState({ nameQuery: v || '' })}
+              />
+            </Stack.Item>
+            <DefaultButton text="Refresh" iconProps={{ iconName: 'Refresh' }} onClick={this.reload} />
+          </Stack>
+        </div>
 
         {loadError && <MessageBar messageBarType={MessageBarType.error}>{loadError}</MessageBar>}
 
-        <div className={styles.muted}>{filteredDocs.length} document(s)</div>
+        <Stack horizontal verticalAlign="center" tokens={{ childrenGap: 8 }}>
+          <span className={styles.countPill}>{filteredDocs.length} document(s)</span>
+        </Stack>
 
         {filteredDocs.length === 0 && (
           <MessageBar messageBarType={MessageBarType.info}>No documents found.</MessageBar>
         )}
 
-        {filteredDocs.map(d => (
-          <div key={d.Id} className={styles.docRow}>
-            <div style={{ flex: 1 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Icon {...getFileTypeIconProps({ extension: this.getExtension(d.Name), size: 20 })} />
-                <Link href={this.buildAbsoluteUrl(d.ServerRelativeUrl)} target="_blank">
-                  {d.Name}
-                </Link>
+        <div className={styles.docList}>
+          {filteredDocs.map(d => (
+            <div key={d.Id} className={styles.docRow}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div className={styles.docTitle}>
+                  <Icon {...getFileTypeIconProps({ extension: this.getExtension(d.Name), size: 20 })} />
+                  <Link href={this.buildAbsoluteUrl(d.ServerRelativeUrl)} target="_blank">
+                    {d.Name}
+                  </Link>
+                </div>
+                <div className={styles.docMeta}>
+                  {d.SizeKB ? `${d.SizeKB} KB · ` : ''}
+                  Modified {new Date(d.Modified).toLocaleString()}{d.ModifiedBy ? ` · ${d.ModifiedBy}` : ''}
+                </div>
+                <div className={styles.tagWrap}>
+                  {d.Hashtags.length === 0 && <span className={styles.muted}>No hashtags</span>}
+                  {d.Hashtags.map(t => (
+                    <span key={t.Id} className={`${styles.tagPill} ${styles.tagPillReadonly}`}>#{t.Title}</span>
+                  ))}
+                </div>
               </div>
-              <div className={styles.docMeta}>
-                {d.SizeKB ? `${d.SizeKB} KB · ` : ''}
-                Modified {new Date(d.Modified).toLocaleString()}{d.ModifiedBy ? ` by ${d.ModifiedBy}` : ''}
-              </div>
-              <div style={{ marginTop: 4 }}>
-                {d.Hashtags.length === 0 && <span className={styles.muted}>No hashtags</span>}
-                {d.Hashtags.map(t => (
-                  <span key={t.Id} className={`${styles.tagPill} ${styles.tagPillReadonly}`}>#{t.Title}</span>
-                ))}
-              </div>
+              <PrimaryButton
+                text="Edit tags"
+                iconProps={{ iconName: 'Edit' }}
+                onClick={() => this.openEdit(d)}
+              />
             </div>
-            <PrimaryButton
-              text="Edit tags"
-              iconProps={{ iconName: 'Edit' }}
-              onClick={() => this.openEdit(d)}
-            />
-          </div>
-        ))}
+          ))}
+        </div>
 
         <Dialog
           hidden={!editingDoc}
@@ -187,7 +193,7 @@ export class DocTagsEditor extends React.Component<IProps, IState> {
             subText: editingDoc ? `For: ${editingDoc.Name}` : ''
           }}
         >
-          <Stack tokens={{ childrenGap: 8 }}>
+          <Stack tokens={{ childrenGap: 10 }}>
             <TextField
               placeholder="Filter hashtags..."
               iconProps={{ iconName: 'Filter' }}
@@ -195,8 +201,8 @@ export class DocTagsEditor extends React.Component<IProps, IState> {
               onChange={(_, v) => this.setState({ editFilter: v || '' })}
               disabled={savingEdit}
             />
-            <div style={{ maxHeight: 320, overflowY: 'auto' }}>
-              {filteredEditTags.length === 0 && <div className={styles.muted}>No hashtags found.</div>}
+            <div className={styles.tagWrap} style={{ maxHeight: 320, overflowY: 'auto' }}>
+              {filteredEditTags.length === 0 && <span className={styles.muted}>No hashtags found.</span>}
               {filteredEditTags.map(t => {
                 const selected = editingTagIds.indexOf(t.Id) !== -1;
                 return (
@@ -210,7 +216,7 @@ export class DocTagsEditor extends React.Component<IProps, IState> {
                 );
               })}
             </div>
-            <div className={styles.muted}>{editingTagIds.length} selected</div>
+            <span className={styles.muted}>{editingTagIds.length} selected</span>
             {editError && <MessageBar messageBarType={MessageBarType.error}>{editError}</MessageBar>}
           </Stack>
           <DialogFooter>

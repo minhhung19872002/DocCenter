@@ -1,16 +1,16 @@
 import * as React from 'react';
 import {
-  PrimaryButton, DefaultButton, Stack, Label, MessageBar, MessageBarType,
+  PrimaryButton, DefaultButton, Stack, MessageBar, MessageBarType,
   ProgressIndicator, TextField, Icon
 } from '@fluentui/react';
 import {
   initializeFileTypeIcons, getFileTypeIconProps
 } from '@fluentui/react-file-type-icons';
-
-initializeFileTypeIcons();
 import { IHashtag, IUploadResult } from '../services/types';
 import { SharePointService } from '../services/SharePointService';
 import styles from './DocCenter.module.scss';
+
+initializeFileTypeIcons();
 
 interface IProps {
   libraryTitle: string;
@@ -96,6 +96,15 @@ export class Upload extends React.Component<IProps, IState> {
     this.setState({ uploading: false, results: out, files: [], selectedTagIds: [] });
   };
 
+  private renderStep(num: number, label: string): React.ReactElement {
+    return (
+      <div className={styles.stepHeader}>
+        <span className={styles.stepNumber}>{num}</span>
+        <span className={styles.stepLabel}>{label}</span>
+      </div>
+    );
+  }
+
   public render(): React.ReactElement {
     const { files, selectedTagIds, dragActive, uploading, results, quickTag, filter } = this.state;
     const filteredTags = this.props.hashtags.filter(
@@ -103,17 +112,17 @@ export class Upload extends React.Component<IProps, IState> {
     );
 
     return (
-      <Stack tokens={{ childrenGap: 12 }} className={styles.section}>
-        <Label>1. Choose files</Label>
-        <div
-          className={`${styles.dropZone} ${dragActive ? styles.dropZoneActive : ''}`}
-          onDragOver={e => { e.preventDefault(); this.setState({ dragActive: true }); }}
-          onDragLeave={() => this.setState({ dragActive: false })}
-          onDrop={this.onDrop}
-        >
-          <Icon iconName="CloudUpload" style={{ fontSize: 28, color: '#0078d4' }} />
-          <div style={{ marginTop: 8 }}>Drag files here, or</div>
-          <div style={{ marginTop: 8 }}>
+      <Stack tokens={{ childrenGap: 18 }} className={styles.section}>
+        <div>
+          {this.renderStep(1, 'Choose files')}
+          <div
+            className={`${styles.dropZone} ${dragActive ? styles.dropZoneActive : ''}`}
+            onDragOver={e => { e.preventDefault(); this.setState({ dragActive: true }); }}
+            onDragLeave={() => this.setState({ dragActive: false })}
+            onDrop={this.onDrop}
+          >
+            <Icon iconName="CloudUpload" className={styles.dropZoneIcon} style={{ fontSize: 32 }} />
+            <div className={styles.dropZoneHint}>Drag files here, or browse from your computer</div>
             <PrimaryButton text="Browse files" iconProps={{ iconName: 'OpenFile' }} onClick={this.onPickClick} />
             <input
               type="file"
@@ -123,89 +132,94 @@ export class Upload extends React.Component<IProps, IState> {
               onChange={this.onFileInput}
             />
           </div>
-        </div>
 
-        {files.length > 0 && (
-          <div>
-            <Label>{files.length} file(s) ready</Label>
-            {files.map((f, i) => {
-              const dot = f.name.lastIndexOf('.');
-              const ext = dot >= 0 ? f.name.substring(dot + 1).toLowerCase() : '';
-              return (
-                <div key={i} className={styles.fileChip}>
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-                    <Icon {...getFileTypeIconProps({ extension: ext, size: 20 })} />
-                    {f.name} <span className={styles.muted}>({Math.round(f.size / 1024)} KB)</span>
-                  </span>
-                  <DefaultButton iconProps={{ iconName: 'Cancel' }} text="Remove" onClick={() => this.removeFile(i)} />
-                </div>
-              );
-            })}
-          </div>
-        )}
-
-        <Label>2. Pick hashtags</Label>
-        <TextField
-          placeholder="Filter hashtags..."
-          iconProps={{ iconName: 'Filter' }}
-          value={filter}
-          onChange={(_, v) => this.setState({ filter: v || '' })}
-        />
-        <div>
-          {filteredTags.length === 0 && <div className={styles.muted}>No hashtags yet. Add one below.</div>}
-          {filteredTags.map(t => {
-            const selected = selectedTagIds.indexOf(t.Id) !== -1;
-            return (
-              <span
-                key={t.Id}
-                className={`${styles.tagPill} ${selected ? styles.tagPillSelected : ''}`}
-                onClick={() => this.toggleTag(t.Id)}
-              >
-                #{t.Title}
-              </span>
-            );
-          })}
-        </div>
-
-        <Stack horizontal tokens={{ childrenGap: 8 }} verticalAlign="end">
-          <Stack.Item grow>
-            <TextField
-              label="Add a new hashtag"
-              placeholder="e.g. quarterly-report"
-              value={quickTag}
-              onChange={(_, v) => this.setState({ quickTag: v || '' })}
-              onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); void this.addQuickTag(); } }}
-            />
-          </Stack.Item>
-          <DefaultButton text="Add" iconProps={{ iconName: 'Add' }} onClick={this.addQuickTag} disabled={!quickTag.trim()} />
-        </Stack>
-
-        <Label>3. Upload</Label>
-        <Stack horizontal tokens={{ childrenGap: 8 }}>
-          <PrimaryButton
-            text={uploading ? 'Uploading...' : `Upload ${files.length || ''}`}
-            iconProps={{ iconName: 'Upload' }}
-            onClick={this.upload}
-            disabled={uploading || files.length === 0}
-          />
-          {files.length > 0 && !uploading && (
-            <DefaultButton text="Clear" onClick={() => this.setState({ files: [], selectedTagIds: [] })} />
+          {files.length > 0 && (
+            <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <span className={styles.muted}>{files.length} file(s) ready</span>
+              {files.map((f, i) => {
+                const dot = f.name.lastIndexOf('.');
+                const ext = dot >= 0 ? f.name.substring(dot + 1).toLowerCase() : '';
+                return (
+                  <div key={i} className={styles.fileChip}>
+                    <span className={styles.fileChipName}>
+                      <Icon {...getFileTypeIconProps({ extension: ext, size: 20 })} />
+                      <span>{f.name} <span className={styles.muted}>· {Math.round(f.size / 1024)} KB</span></span>
+                    </span>
+                    <DefaultButton iconProps={{ iconName: 'Cancel' }} text="Remove" onClick={() => this.removeFile(i)} />
+                  </div>
+                );
+              })}
+            </div>
           )}
-        </Stack>
-        {uploading && <ProgressIndicator label="Uploading files..." />}
+        </div>
 
-        {results.length > 0 && (
-          <Stack tokens={{ childrenGap: 4 }}>
-            {results.map((r, i) => (
-              <MessageBar
-                key={i}
-                messageBarType={r.success ? MessageBarType.success : MessageBarType.error}
-              >
-                {r.fileName}: {r.success ? 'uploaded' : r.error}
-              </MessageBar>
-            ))}
+        <div>
+          {this.renderStep(2, 'Pick hashtags')}
+          <div className={styles.card}>
+            <TextField
+              placeholder="Filter hashtags..."
+              iconProps={{ iconName: 'Filter' }}
+              value={filter}
+              onChange={(_, v) => this.setState({ filter: v || '' })}
+            />
+            <div className={styles.tagWrap}>
+              {filteredTags.length === 0 && <span className={styles.muted}>No hashtags yet. Add one below.</span>}
+              {filteredTags.map(t => {
+                const selected = selectedTagIds.indexOf(t.Id) !== -1;
+                return (
+                  <span
+                    key={t.Id}
+                    className={`${styles.tagPill} ${selected ? styles.tagPillSelected : ''}`}
+                    onClick={() => this.toggleTag(t.Id)}
+                  >
+                    #{t.Title}
+                  </span>
+                );
+              })}
+            </div>
+            <Stack horizontal tokens={{ childrenGap: 8 }} verticalAlign="end" style={{ marginTop: 12 }}>
+              <Stack.Item grow>
+                <TextField
+                  label="Add a new hashtag"
+                  placeholder="e.g. quarterly-report"
+                  value={quickTag}
+                  onChange={(_, v) => this.setState({ quickTag: v || '' })}
+                  onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); void this.addQuickTag(); } }}
+                />
+              </Stack.Item>
+              <DefaultButton text="Add" iconProps={{ iconName: 'Add' }} onClick={this.addQuickTag} disabled={!quickTag.trim()} />
+            </Stack>
+          </div>
+        </div>
+
+        <div>
+          {this.renderStep(3, 'Upload')}
+          <Stack horizontal tokens={{ childrenGap: 8 }}>
+            <PrimaryButton
+              text={uploading ? 'Uploading...' : files.length > 0 ? `Upload ${files.length} file(s)` : 'Upload'}
+              iconProps={{ iconName: 'Upload' }}
+              onClick={this.upload}
+              disabled={uploading || files.length === 0}
+            />
+            {files.length > 0 && !uploading && (
+              <DefaultButton text="Clear" onClick={() => this.setState({ files: [], selectedTagIds: [] })} />
+            )}
           </Stack>
-        )}
+          {uploading && <div style={{ marginTop: 12 }}><ProgressIndicator label="Uploading files..." /></div>}
+
+          {results.length > 0 && (
+            <Stack tokens={{ childrenGap: 6 }} style={{ marginTop: 12 }}>
+              {results.map((r, i) => (
+                <MessageBar
+                  key={i}
+                  messageBarType={r.success ? MessageBarType.success : MessageBarType.error}
+                >
+                  {r.fileName}: {r.success ? 'uploaded' : r.error}
+                </MessageBar>
+              ))}
+            </Stack>
+          )}
+        </div>
       </Stack>
     );
   }

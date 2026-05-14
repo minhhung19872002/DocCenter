@@ -1,17 +1,17 @@
 import * as React from 'react';
 import {
-  Stack, Label, TextField, ChoiceGroup, IChoiceGroupOption,
+  Stack, TextField, ChoiceGroup, IChoiceGroupOption,
   DefaultButton, PrimaryButton, IconButton, MessageBar, MessageBarType,
   Spinner, SpinnerSize, Link, Icon, Dialog, DialogType, DialogFooter
 } from '@fluentui/react';
 import {
   initializeFileTypeIcons, getFileTypeIconProps
 } from '@fluentui/react-file-type-icons';
-
-initializeFileTypeIcons();
 import { IHashtag, IDocument, SearchMode } from '../services/types';
 import { SharePointService } from '../services/SharePointService';
 import styles from './DocCenter.module.scss';
+
+initializeFileTypeIcons();
 
 interface IProps {
   libraryTitle: string;
@@ -37,8 +37,8 @@ interface IState {
 }
 
 const MODE_OPTIONS: IChoiceGroupOption[] = [
-  { key: 'any', text: 'Match ANY selected (OR)' },
-  { key: 'all', text: 'Match ALL selected (AND)' }
+  { key: 'any', text: 'Any (OR)' },
+  { key: 'all', text: 'All (AND)' }
 ];
 
 export class Search extends React.Component<IProps, IState> {
@@ -93,8 +93,6 @@ export class Search extends React.Component<IProps, IState> {
   private buildAbsoluteUrl(serverRelativeUrl: string): string {
     const origin = this.props.siteUrl.replace(/^(https?:\/\/[^/]+).*$/, '$1');
     const absolute = serverRelativeUrl.startsWith('/') ? `${origin}${serverRelativeUrl}` : serverRelativeUrl;
-    // ?web=1 forces SharePoint to open Office files / PDFs in the browser viewer
-    // instead of triggering a download or launching the desktop client.
     return absolute + (absolute.indexOf('?') === -1 ? '?web=1' : '&web=1');
   }
 
@@ -148,69 +146,78 @@ export class Search extends React.Component<IProps, IState> {
     );
 
     return (
-      <Stack tokens={{ childrenGap: 12 }} className={styles.section}>
-        <Stack horizontal tokens={{ childrenGap: 8 }}>
-          <Stack.Item grow>
-            <TextField
-              label="Search by file name"
-              placeholder="Type to filter by file name..."
-              iconProps={{ iconName: 'Search' }}
-              value={nameQuery}
-              onChange={(_, v) => this.setState({ nameQuery: v || '' }, () => void this.runSearch())}
-            />
-          </Stack.Item>
-          <Stack.Item>
-            <ChoiceGroup
-              label="Match mode"
-              selectedKey={mode}
-              options={MODE_OPTIONS}
-              onChange={(_, opt) => opt && this.setState({ mode: opt.key as SearchMode }, () => void this.runSearch())}
-            />
-          </Stack.Item>
-        </Stack>
+      <Stack tokens={{ childrenGap: 16 }} className={styles.section}>
+        <div className={styles.card}>
+          <Stack horizontal tokens={{ childrenGap: 16 }} verticalAlign="start">
+            <Stack.Item grow>
+              <TextField
+                label="Search by file name"
+                placeholder="Type part of a file name..."
+                iconProps={{ iconName: 'Search' }}
+                value={nameQuery}
+                onChange={(_, v) => this.setState({ nameQuery: v || '' }, () => void this.runSearch())}
+              />
+            </Stack.Item>
+            <Stack.Item>
+              <ChoiceGroup
+                label="Match mode"
+                selectedKey={mode}
+                options={MODE_OPTIONS}
+                onChange={(_, opt) => opt && this.setState({ mode: opt.key as SearchMode }, () => void this.runSearch())}
+              />
+            </Stack.Item>
+          </Stack>
 
-        <Label>Hashtags {selectedTagIds.length > 0 && <Link onClick={this.clearTags}>(clear {selectedTagIds.length})</Link>}</Label>
-        <TextField
-          placeholder="Filter hashtags..."
-          iconProps={{ iconName: 'Filter' }}
-          value={filter}
-          onChange={(_, v) => this.setState({ filter: v || '' })}
-        />
-        <div>
-          {filteredTags.length === 0 && <div className={styles.muted}>No hashtags found.</div>}
-          {filteredTags.map(t => {
-            const selected = selectedTagIds.indexOf(t.Id) !== -1;
-            return (
-              <span
-                key={t.Id}
-                className={`${styles.tagPill} ${styles.tagPillBig} ${selected ? styles.tagPillSelected : ''}`}
-                onClick={() => this.toggleTag(t.Id)}
-              >
-                #{t.Title}
-              </span>
-            );
-          })}
+          <div style={{ marginTop: 16 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+              <span className={styles.sectionLabel}>Hashtags</span>
+              {selectedTagIds.length > 0 && (
+                <span className={styles.clearLink} onClick={this.clearTags}>
+                  Clear {selectedTagIds.length} selected
+                </span>
+              )}
+            </div>
+            <TextField
+              placeholder="Filter hashtags..."
+              iconProps={{ iconName: 'Filter' }}
+              value={filter}
+              onChange={(_, v) => this.setState({ filter: v || '' })}
+            />
+            <div className={styles.tagWrap}>
+              {filteredTags.length === 0 && <span className={styles.muted}>No hashtags found.</span>}
+              {filteredTags.map(t => {
+                const selected = selectedTagIds.indexOf(t.Id) !== -1;
+                return (
+                  <span
+                    key={t.Id}
+                    className={`${styles.tagPill} ${styles.tagPillBig} ${selected ? styles.tagPillSelected : ''}`}
+                    onClick={() => this.toggleTag(t.Id)}
+                  >
+                    #{t.Title}
+                  </span>
+                );
+              })}
+            </div>
+          </div>
         </div>
 
-        <Stack horizontal tokens={{ childrenGap: 8 }}>
+        <Stack horizontal tokens={{ childrenGap: 8 }} verticalAlign="center">
           <DefaultButton text="Refresh" iconProps={{ iconName: 'Refresh' }} onClick={this.runSearch} disabled={searching} />
+          {!searching && searched && <span className={styles.countPill}>{results.length} document(s)</span>}
         </Stack>
 
         {searching && <Spinner size={SpinnerSize.medium} label="Searching..." />}
 
         {!searching && searched && results.length === 0 && (
-          <MessageBar messageBarType={MessageBarType.info}>
-            No documents matched your criteria.
-          </MessageBar>
+          <MessageBar messageBarType={MessageBarType.info}>No documents matched your criteria.</MessageBar>
         )}
 
         {!searching && results.length > 0 && (
-          <div>
-            <div className={styles.muted}>{results.length} document(s)</div>
+          <div className={styles.docList}>
             {results.map(d => (
               <div key={d.Id} className={styles.docRow}>
-                <div style={{ flex: 1 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div className={styles.docTitle}>
                     <Icon {...getFileTypeIconProps({ extension: this.getExtension(d.Name), size: 20 })} />
                     <Link href={this.buildAbsoluteUrl(d.ServerRelativeUrl)} target="_blank">
                       {d.Name}
@@ -218,9 +225,9 @@ export class Search extends React.Component<IProps, IState> {
                   </div>
                   <div className={styles.docMeta}>
                     {d.SizeKB ? `${d.SizeKB} KB · ` : ''}
-                    Modified {new Date(d.Modified).toLocaleString()}{d.ModifiedBy ? ` by ${d.ModifiedBy}` : ''}
+                    Modified {new Date(d.Modified).toLocaleString()}{d.ModifiedBy ? ` · ${d.ModifiedBy}` : ''}
                   </div>
-                  <div style={{ marginTop: 4 }}>
+                  <div className={styles.tagWrap}>
                     {d.Hashtags.length === 0 && <span className={styles.muted}>No hashtags</span>}
                     {d.Hashtags.map(t => {
                       const active = selectedTagIds.indexOf(t.Id) !== -1;
@@ -261,7 +268,7 @@ export class Search extends React.Component<IProps, IState> {
             subText: editingDoc ? `For: ${editingDoc.Name}` : ''
           }}
         >
-          <Stack tokens={{ childrenGap: 8 }}>
+          <Stack tokens={{ childrenGap: 10 }}>
             <TextField
               placeholder="Filter hashtags..."
               iconProps={{ iconName: 'Filter' }}
@@ -269,8 +276,8 @@ export class Search extends React.Component<IProps, IState> {
               onChange={(_, v) => this.setState({ editFilter: v || '' })}
               disabled={savingEdit}
             />
-            <div style={{ maxHeight: 320, overflowY: 'auto' }}>
-              {filteredEditTags.length === 0 && <div className={styles.muted}>No hashtags found.</div>}
+            <div className={styles.tagWrap} style={{ maxHeight: 320, overflowY: 'auto' }}>
+              {filteredEditTags.length === 0 && <span className={styles.muted}>No hashtags found.</span>}
               {filteredEditTags.map(t => {
                 const selected = editingTagIds.indexOf(t.Id) !== -1;
                 return (
@@ -284,10 +291,8 @@ export class Search extends React.Component<IProps, IState> {
                 );
               })}
             </div>
-            <div className={styles.muted}>{editingTagIds.length} selected</div>
-            {editError && (
-              <MessageBar messageBarType={MessageBarType.error}>{editError}</MessageBar>
-            )}
+            <span className={styles.muted}>{editingTagIds.length} selected</span>
+            {editError && <MessageBar messageBarType={MessageBarType.error}>{editError}</MessageBar>}
           </Stack>
           <DialogFooter>
             <PrimaryButton text={savingEdit ? 'Saving...' : 'Save'} onClick={this.saveEdit} disabled={savingEdit} />

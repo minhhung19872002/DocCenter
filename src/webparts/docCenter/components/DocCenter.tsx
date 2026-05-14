@@ -1,11 +1,12 @@
 import * as React from 'react';
-import { Pivot, PivotItem, Spinner, SpinnerSize, MessageBar, MessageBarType, Stack } from '@fluentui/react';
+import { Pivot, PivotItem, Spinner, SpinnerSize, MessageBar, MessageBarType, ThemeProvider } from '@fluentui/react';
 import { IDocCenterProps } from './IDocCenterProps';
 import { SharePointService } from '../services/SharePointService';
 import { IHashtag } from '../services/types';
 import { Upload } from './Upload';
 import { Search } from './Search';
 import { Admin } from './Admin';
+import { claudeTheme } from './theme';
 import styles from './DocCenter.module.scss';
 
 interface IState {
@@ -42,64 +43,80 @@ export class DocCenter extends React.Component<IDocCenterProps, IState> {
 
     if (loading) {
       return (
-        <div className={styles.docCenter}>
-          <Spinner size={SpinnerSize.large} label="Loading Document Center..." />
-        </div>
+        <ThemeProvider theme={claudeTheme}>
+          <div className={styles.docCenter}>
+            <Spinner size={SpinnerSize.large} label="Loading Document Center..." />
+          </div>
+        </ThemeProvider>
       );
     }
 
     if (error) {
       return (
-        <div className={styles.docCenter}>
-          <MessageBar messageBarType={MessageBarType.error}>{error}</MessageBar>
-        </div>
+        <ThemeProvider theme={claudeTheme}>
+          <div className={styles.docCenter}>
+            <MessageBar messageBarType={MessageBarType.error}>{error}</MessageBar>
+          </div>
+        </ThemeProvider>
       );
     }
 
     return (
-      <div className={styles.docCenter}>
-        <Stack horizontal verticalAlign="center" horizontalAlign="space-between" className={styles.header}>
-          <div className={styles.title}>Document Center</div>
-          <div className={styles.muted}>
-            Library: <b>{this.props.documentsLibraryTitle}</b> · Tags: <b>{this.props.hashtagsListTitle}</b>
-            {isAdmin && <span> · <b>Admin</b></span>}
+      <ThemeProvider theme={claudeTheme}>
+        <div className={styles.docCenter}>
+          <div className={styles.header}>
+            <div className={styles.headerLeft}>
+              <div className={styles.title}>Document Center</div>
+              <div className={styles.subtitle}>
+                Upload documents, tag them with hashtags, and find them instantly.
+              </div>
+            </div>
+            <div className={styles.headerRight}>
+              {isAdmin && <span className={styles.adminBadge}>● Admin</span>}
+              <span className={styles.metaChip}>
+                Library: <b style={{ marginLeft: 4 }}>{this.props.documentsLibraryTitle}</b>
+              </span>
+              <span className={styles.metaChip}>
+                Tags: <b style={{ marginLeft: 4 }}>{this.props.hashtagsListTitle}</b>
+              </span>
+            </div>
           </div>
-        </Stack>
 
-        <Pivot>
-          <PivotItem headerText="Upload" itemIcon="Upload">
-            <Upload
-              libraryTitle={this.props.documentsLibraryTitle}
-              hashtags={hashtags}
-              onHashtagsChanged={this.reloadHashtags}
-              hashtagsListTitle={this.props.hashtagsListTitle}
-              isAdmin={isAdmin}
-            />
-          </PivotItem>
-
-          <PivotItem headerText="Search" itemIcon="Search">
-            <Search
-              libraryTitle={this.props.documentsLibraryTitle}
-              hashtagsListTitle={this.props.hashtagsListTitle}
-              hashtags={hashtags}
-              siteUrl={this.props.siteUrl}
-              isAdmin={isAdmin}
-            />
-          </PivotItem>
-
-          {isAdmin && (
-            <PivotItem headerText="Admin" itemIcon="Settings">
-              <Admin
-                hashtagsListTitle={this.props.hashtagsListTitle}
+          <Pivot styles={{ root: { marginTop: 16, marginBottom: 8 } }}>
+            <PivotItem headerText="Upload" itemIcon="Upload">
+              <Upload
                 libraryTitle={this.props.documentsLibraryTitle}
                 hashtags={hashtags}
-                siteUrl={this.props.siteUrl}
-                onChange={this.reloadHashtags}
+                onHashtagsChanged={this.reloadHashtags}
+                hashtagsListTitle={this.props.hashtagsListTitle}
+                isAdmin={isAdmin}
               />
             </PivotItem>
-          )}
-        </Pivot>
-      </div>
+
+            <PivotItem headerText="Search" itemIcon="Search">
+              <Search
+                libraryTitle={this.props.documentsLibraryTitle}
+                hashtagsListTitle={this.props.hashtagsListTitle}
+                hashtags={hashtags}
+                siteUrl={this.props.siteUrl}
+                isAdmin={isAdmin}
+              />
+            </PivotItem>
+
+            {isAdmin && (
+              <PivotItem headerText="Admin" itemIcon="Settings">
+                <Admin
+                  hashtagsListTitle={this.props.hashtagsListTitle}
+                  libraryTitle={this.props.documentsLibraryTitle}
+                  hashtags={hashtags}
+                  siteUrl={this.props.siteUrl}
+                  onChange={this.reloadHashtags}
+                />
+              </PivotItem>
+            )}
+          </Pivot>
+        </div>
+      </ThemeProvider>
     );
   }
 }

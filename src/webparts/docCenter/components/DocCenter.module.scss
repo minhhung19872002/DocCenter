@@ -1,105 +1,361 @@
+// Design tokens — Claude-inspired warm minimal palette
+$color-bg:            #FAFAF7;
+$color-surface:       #FFFFFF;
+$color-surface-alt:   #F4F3EE;
+$color-border:        #E8E6DF;
+$color-border-strong: #D2D0C8;
+$color-text:          #1A1A19;
+$color-text-muted:    #6B6960;
+$color-accent:        #C15F3C;
+$color-accent-soft:   #FBF1ED;
+$color-accent-strong: #92482D;
+
+$radius-pill:   100px;
+$radius-card:   12px;
+$radius-input:  8px;
+
+$shadow-soft: 0 1px 2px rgba(20, 18, 14, 0.04), 0 4px 12px rgba(20, 18, 14, 0.04);
+$shadow-hover: 0 1px 2px rgba(20, 18, 14, 0.06), 0 8px 20px rgba(20, 18, 14, 0.06);
+
 .docCenter {
-  font-family: 'Segoe UI', Tahoma, Arial, sans-serif;
-  color: #323130;
+  font-family: "Inter", "Segoe UI", -apple-system, BlinkMacSystemFont, Arial, sans-serif;
+  color: $color-text;
+  background: $color-bg;
+  padding: 24px 28px 32px;
+  border-radius: $radius-card;
+  border: 1px solid $color-border;
+  letter-spacing: -0.005em;
+
+  :global {
+    .ms-Pivot-link {
+      font-weight: 500;
+    }
+    .ms-Pivot-link.is-selected::before {
+      background: $color-accent;
+    }
+    .ms-TextField-fieldGroup {
+      border-radius: $radius-input;
+    }
+    .ms-Button--primary {
+      border-radius: $radius-input;
+    }
+    .ms-Button--default {
+      border-radius: $radius-input;
+    }
+  }
 }
 
 .header {
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: space-between;
-  margin-bottom: 12px;
+  gap: 16px;
+  padding-bottom: 18px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid $color-border;
+}
+
+.headerLeft {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
 .title {
-  font-size: 20px;
+  font-size: 26px;
+  line-height: 1.15;
   font-weight: 600;
+  letter-spacing: -0.02em;
+  color: $color-text;
+}
+
+.subtitle {
+  font-size: 13px;
+  color: $color-text-muted;
+  line-height: 1.4;
+}
+
+.headerRight {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.metaChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: $color-text-muted;
+  background: $color-surface;
+  border: 1px solid $color-border;
+  border-radius: $radius-pill;
+  padding: 4px 10px;
+}
+
+.adminBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: $color-accent-strong;
+  background: $color-accent-soft;
+  border: 1px solid lighten($color-accent, 25%);
+  border-radius: $radius-pill;
+  padding: 3px 10px;
+}
+
+.section {
+  margin-top: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.sectionLabel {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: $color-text-muted;
+  margin: 0;
+}
+
+.card {
+  background: $color-surface;
+  border: 1px solid $color-border;
+  border-radius: $radius-card;
+  padding: 18px 20px;
+}
+
+// Tag pills ------------------------------------------------------------------
+.tagWrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
 }
 
 .tagPill {
   display: inline-flex;
   align-items: center;
-  padding: 4px 10px;
-  margin: 3px;
-  border-radius: 14px;
-  background: #f3f2f1;
+  padding: 5px 12px;
+  border-radius: $radius-pill;
+  background: $color-surface;
+  color: $color-text;
   cursor: pointer;
   font-size: 13px;
-  border: 1px solid transparent;
+  line-height: 1.2;
+  border: 1px solid $color-border;
   user-select: none;
+  transition: all 120ms ease;
+
+  &:hover {
+    border-color: $color-accent;
+    color: $color-accent-strong;
+    background: $color-accent-soft;
+  }
 }
 
 .tagPillSelected {
-  background: #0078d4;
+  background: $color-accent;
   color: #ffffff;
-  border-color: #0078d4;
+  border-color: $color-accent;
+
+  &:hover {
+    background: $color-accent-strong;
+    color: #ffffff;
+    border-color: $color-accent-strong;
+  }
 }
 
 .tagPillReadonly {
   cursor: default;
-  background: #edebe9;
+  background: $color-surface-alt;
+  color: $color-text-muted;
+  border-color: $color-border;
+
+  &:hover {
+    border-color: $color-border;
+    color: $color-text-muted;
+    background: $color-surface-alt;
+  }
 }
 
 .tagPillBig {
-  font-size: 14px;
-  padding: 6px 12px;
+  font-size: 13.5px;
+  padding: 7px 14px;
 }
 
+// Drop zone ------------------------------------------------------------------
 .dropZone {
-  border: 2px dashed #c8c6c4;
-  border-radius: 6px;
-  padding: 28px;
+  border: 1.5px dashed $color-border-strong;
+  border-radius: $radius-card;
+  padding: 36px 24px;
   text-align: center;
-  background: #faf9f8;
-  transition: background 120ms ease;
+  background: $color-surface;
+  transition: all 160ms ease;
+
+  .dropZoneIcon {
+    color: $color-text-muted;
+    transition: color 160ms ease;
+  }
 }
 
 .dropZoneActive {
-  background: #deecf9;
-  border-color: #0078d4;
+  background: $color-accent-soft;
+  border-color: $color-accent;
+
+  .dropZoneIcon {
+    color: $color-accent;
+  }
 }
 
+.dropZoneHint {
+  color: $color-text-muted;
+  font-size: 13px;
+  margin: 10px 0 14px;
+}
+
+// File chip (staged uploads) -------------------------------------------------
 .fileChip {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 8px 12px;
-  margin: 6px 0;
-  background: #ffffff;
-  border: 1px solid #edebe9;
-  border-radius: 4px;
+  gap: 12px;
+  padding: 10px 14px;
+  background: $color-surface;
+  border: 1px solid $color-border;
+  border-radius: $radius-input;
+}
+
+.fileChipName {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  min-width: 0;
+  flex: 1;
+  word-break: break-all;
+}
+
+// Document rows --------------------------------------------------------------
+.docList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .docRow {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
-  padding: 12px;
-  border-bottom: 1px solid #edebe9;
+  gap: 16px;
+  padding: 14px 16px;
+  background: $color-surface;
+  border: 1px solid $color-border;
+  border-radius: $radius-card;
+  transition: border-color 120ms ease, box-shadow 160ms ease;
+
+  &:hover {
+    border-color: $color-border-strong;
+    box-shadow: $shadow-soft;
+  }
 }
 
-.docRow:hover {
-  background: #f3f2f1;
+.docTitle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.3;
+
+  a {
+    color: $color-text;
+    text-decoration: none;
+
+    &:hover {
+      color: $color-accent-strong;
+      text-decoration: underline;
+    }
+  }
 }
 
 .docMeta {
   font-size: 12px;
-  color: #605e5c;
-  margin-top: 2px;
+  color: $color-text-muted;
+  margin-top: 4px;
 }
 
+// Admin row (hashtag CRUD) ---------------------------------------------------
 .adminRow {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 8px 12px;
-  border-bottom: 1px solid #edebe9;
+  gap: 12px;
+  padding: 10px 14px;
+  background: $color-surface;
+  border: 1px solid $color-border;
+  border-radius: $radius-input;
 }
 
+// Misc -----------------------------------------------------------------------
 .muted {
-  color: #605e5c;
+  color: $color-text-muted;
   font-size: 12px;
+  line-height: 1.4;
 }
 
-.section {
-  margin: 18px 0;
+.countPill {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  border-radius: $radius-pill;
+  background: $color-surface-alt;
+  color: $color-text-muted;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.clearLink {
+  font-size: 12px;
+  color: $color-accent;
+  cursor: pointer;
+  margin-left: 6px;
+
+  &:hover {
+    color: $color-accent-strong;
+    text-decoration: underline;
+  }
+}
+
+.stepHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.stepNumber {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: $color-accent-soft;
+  color: $color-accent-strong;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.stepLabel {
+  font-size: 13px;
+  font-weight: 600;
+  color: $color-text;
 }
