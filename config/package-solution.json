@@ -1,0 +1,40 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/spfx-build/package-solution.schema.json",
+  "solution": {
+    "name": "doc-center-client-side-solution",
+    "id": "a1f2c3d4-5b6e-7f80-9012-3456789abcde",
+    "version": "1.0.0.0",
+    "includeClientSideAssets": true,
+    "skipFeatureDeployment": true,
+    "isDomainIsolated": false,
+    "developer": {
+      "name": "DocCenter",
+      "websiteUrl": "",
+      "privacyUrl": "",
+      "termsOfUseUrl": "",
+      "mpnId": ""
+    },
+    "metadata": {
+      "shortDescription": {
+        "default": "Upload and search documents by hashtag"
+      },
+      "longDescription": {
+        "default": "Document center with hashtag-based search and admin hashtag management"
+      },
+      "screenshotPaths": [],
+      "videoUrl": "",
+      "categories": []
+    },
+    "features": [
+      {
+        "title": "doc-center Feature",
+        "description": "Feature to deploy doc-center web part",
+        "id": "b2e3d4c5-6f7a-8901-2345-6789abcdef01",
+        "version": "1.0.0.0"
+      }
+    ]
+  },
+  "paths": {
+    "zippedPackage": "solution/doc-center.sppkg"
+  }
+}

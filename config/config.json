@@ -1,0 +1,18 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/spfx-build/config.2.0.schema.json",
+  "version": "2.0",
+  "bundles": {
+    "doc-center-web-part": {
+      "components": [
+        {
+          "entrypoint": "./lib/webparts/docCenter/DocCenterWebPart.js",
+          "manifest": "./src/webparts/docCenter/DocCenterWebPart.manifest.json"
+        }
+      ]
+    }
+  },
+  "externals": {},
+  "localizedResources": {
+    "DocCenterWebPartStrings": "lib/webparts/docCenter/loc/{locale}.js"
+  }
+}

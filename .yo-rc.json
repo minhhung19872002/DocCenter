@@ -1,0 +1,17 @@
+{
+  "@microsoft/generator-sharepoint": {
+    "isCreatingSolution": true,
+    "environment": "spo",
+    "version": "1.21.1",
+    "libraryName": "doc-center",
+    "libraryId": "a1f2c3d4-5b6e-7f80-9012-3456789abcde",
+    "packageManager": "npm",
+    "componentType": "webpart",
+    "isDomainIsolated": false,
+    "nodeVersion": "22.14.0",
+    "sdksVersions": {
+      "@microsoft/teams-js": "2.24.0",
+      "@microsoft/microsoft-graph-client": "3.0.2"
+    }
+  }
+}
