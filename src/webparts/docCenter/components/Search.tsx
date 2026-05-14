@@ -1,7 +1,8 @@
 import * as React from 'react';
 import {
   Stack, Label, TextField, ChoiceGroup, IChoiceGroupOption,
-  DefaultButton, MessageBar, MessageBarType, Spinner, SpinnerSize, Link, Icon
+  DefaultButton, PrimaryButton, IconButton, MessageBar, MessageBarType,
+  Spinner, SpinnerSize, Link, Icon, Dialog, DialogType, DialogFooter
 } from '@fluentui/react';
 import { IHashtag, IDocument, SearchMode } from '../services/types';
 import { SharePointService } from '../services/SharePointService';
@@ -12,6 +13,7 @@ interface IProps {
   hashtagsListTitle: string;
   hashtags: IHashtag[];
   siteUrl: string;
+  isAdmin: boolean;
 }
 
 interface IState {
@@ -22,6 +24,11 @@ interface IState {
   searching: boolean;
   results: IDocument[];
   searched: boolean;
+  editingDoc?: IDocument;
+  editingTagIds: number[];
+  editFilter: string;
+  savingEdit: boolean;
+  editError?: string;
 }
 
 const MODE_OPTIONS: IChoiceGroupOption[] = [
@@ -38,7 +45,10 @@ export class Search extends React.Component<IProps, IState> {
     filter: '',
     searching: false,
     results: [],
-    searched: false
+    searched: false,
+    editingTagIds: [],
+    editFilter: '',
+    savingEdit: false
   };
 
   private toggleTag = (id: number): void => {
@@ -75,10 +85,53 @@ export class Search extends React.Component<IProps, IState> {
     return serverRelativeUrl.startsWith('/') ? `${origin}${serverRelativeUrl}` : serverRelativeUrl;
   }
 
+  private openEdit = (doc: IDocument): void => {
+    this.setState({
+      editingDoc: doc,
+      editingTagIds: doc.Hashtags.map(t => t.Id),
+      editFilter: '',
+      savingEdit: false,
+      editError: undefined
+    });
+  };
+
+  private cancelEdit = (): void => {
+    if (this.state.savingEdit) return;
+    this.setState({ editingDoc: undefined, editingTagIds: [], editError: undefined });
+  };
+
+  private toggleEditTag = (id: number): void => {
+    const set = new Set(this.state.editingTagIds);
+    if (set.has(id)) set.delete(id); else set.add(id);
+    this.setState({ editingTagIds: Array.from(set) });
+  };
+
+  private saveEdit = async (): Promise<void> => {
+    const { editingDoc, editingTagIds } = this.state;
+    if (!editingDoc) return;
+    this.setState({ savingEdit: true, editError: undefined });
+    try {
+      await SharePointService.updateDocumentHashtags(this.props.libraryTitle, editingDoc.Id, editingTagIds);
+      this.setState({ editingDoc: undefined, editingTagIds: [], savingEdit: false });
+      await this.runSearch();
+    } catch (e) {
+      this.setState({
+        savingEdit: false,
+        editError: e instanceof Error ? e.message : String(e)
+      });
+    }
+  };
+
   public render(): React.ReactElement {
-    const { selectedTagIds, mode, nameQuery, filter, searching, results, searched } = this.state;
+    const {
+      selectedTagIds, mode, nameQuery, filter, searching, results, searched,
+      editingDoc, editingTagIds, editFilter, savingEdit, editError
+    } = this.state;
     const filteredTags = this.props.hashtags.filter(
       t => !filter || t.Title.toLowerCase().includes(filter.toLowerCase())
+    );
+    const filteredEditTags = this.props.hashtags.filter(
+      t => !editFilter || t.Title.toLowerCase().includes(editFilter.toLowerCase())
     );
 
     return (
@@ -143,7 +196,7 @@ export class Search extends React.Component<IProps, IState> {
             <div className={styles.muted}>{results.length} document(s)</div>
             {results.map(d => (
               <div key={d.Id} className={styles.docRow}>
-                <div>
+                <div style={{ flex: 1 }}>
                   <div>
                     <Icon iconName="Page" />{' '}
                     <Link href={this.buildAbsoluteUrl(d.ServerRelativeUrl)} target="_blank">
@@ -155,6 +208,7 @@ export class Search extends React.Component<IProps, IState> {
                     Modified {new Date(d.Modified).toLocaleString()}{d.ModifiedBy ? ` by ${d.ModifiedBy}` : ''}
                   </div>
                   <div style={{ marginTop: 4 }}>
+                    {d.Hashtags.length === 0 && <span className={styles.muted}>No hashtags</span>}
                     {d.Hashtags.map(t => {
                       const active = selectedTagIds.indexOf(t.Id) !== -1;
                       return (
@@ -170,10 +224,63 @@ export class Search extends React.Component<IProps, IState> {
                     })}
                   </div>
                 </div>
+                {this.props.isAdmin && (
+                  <IconButton
+                    iconProps={{ iconName: 'Edit' }}
+                    title="Edit hashtags"
+                    ariaLabel="Edit hashtags"
+                    onClick={() => this.openEdit(d)}
+                  />
+                )}
               </div>
             ))}
           </div>
         )}
+
+        <Dialog
+          hidden={!editingDoc}
+          onDismiss={this.cancelEdit}
+          minWidth={520}
+          maxWidth={720}
+          dialogContentProps={{
+            type: DialogType.normal,
+            title: 'Edit hashtags',
+            subText: editingDoc ? `For: ${editingDoc.Name}` : ''
+          }}
+        >
+          <Stack tokens={{ childrenGap: 8 }}>
+            <TextField
+              placeholder="Filter hashtags..."
+              iconProps={{ iconName: 'Filter' }}
+              value={editFilter}
+              onChange={(_, v) => this.setState({ editFilter: v || '' })}
+              disabled={savingEdit}
+            />
+            <div style={{ maxHeight: 320, overflowY: 'auto' }}>
+              {filteredEditTags.length === 0 && <div className={styles.muted}>No hashtags found.</div>}
+              {filteredEditTags.map(t => {
+                const selected = editingTagIds.indexOf(t.Id) !== -1;
+                return (
+                  <span
+                    key={t.Id}
+                    className={`${styles.tagPill} ${selected ? styles.tagPillSelected : ''}`}
+                    onClick={() => !savingEdit && this.toggleEditTag(t.Id)}
+                  >
+                    #{t.Title}
+                  </span>
+                );
+              })}
+            </div>
+            <div className={styles.muted}>{editingTagIds.length} selected</div>
+            {editError && (
+              <MessageBar messageBarType={MessageBarType.error}>{editError}</MessageBar>
+            )}
+          </Stack>
+          <DialogFooter>
+            <PrimaryButton text={savingEdit ? 'Saving...' : 'Save'} onClick={this.saveEdit} disabled={savingEdit} />
+            <DefaultButton text="Cancel" onClick={this.cancelEdit} disabled={savingEdit} />
+          </DialogFooter>
+        </Dialog>
       </Stack>
     );
   }

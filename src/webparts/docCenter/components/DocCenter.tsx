@@ -83,6 +83,7 @@ export class DocCenter extends React.Component<IDocCenterProps, IState> {
               hashtagsListTitle={this.props.hashtagsListTitle}
               hashtags={hashtags}
               siteUrl={this.props.siteUrl}
+              isAdmin={isAdmin}
             />
           </PivotItem>
 
