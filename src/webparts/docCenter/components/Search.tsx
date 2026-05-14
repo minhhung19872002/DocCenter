@@ -155,9 +155,19 @@ export class Search extends React.Component<IProps, IState> {
                     Modified {new Date(d.Modified).toLocaleString()}{d.ModifiedBy ? ` by ${d.ModifiedBy}` : ''}
                   </div>
                   <div style={{ marginTop: 4 }}>
-                    {d.Hashtags.map(t => (
-                      <span key={t.Id} className={`${styles.tagPill} ${styles.tagPillReadonly}`}>#{t.Title}</span>
-                    ))}
+                    {d.Hashtags.map(t => {
+                      const active = selectedTagIds.indexOf(t.Id) !== -1;
+                      return (
+                        <span
+                          key={t.Id}
+                          className={`${styles.tagPill} ${active ? styles.tagPillSelected : ''}`}
+                          title={active ? 'Click to remove from filter' : 'Click to add to filter'}
+                          onClick={() => this.toggleTag(t.Id)}
+                        >
+                          #{t.Title}
+                        </span>
+                      );
+                    })}
                   </div>
                 </div>
               </div>
