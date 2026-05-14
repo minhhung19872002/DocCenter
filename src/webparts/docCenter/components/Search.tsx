@@ -82,7 +82,10 @@ export class Search extends React.Component<IProps, IState> {
 
   private buildAbsoluteUrl(serverRelativeUrl: string): string {
     const origin = this.props.siteUrl.replace(/^(https?:\/\/[^/]+).*$/, '$1');
-    return serverRelativeUrl.startsWith('/') ? `${origin}${serverRelativeUrl}` : serverRelativeUrl;
+    const absolute = serverRelativeUrl.startsWith('/') ? `${origin}${serverRelativeUrl}` : serverRelativeUrl;
+    // ?web=1 forces SharePoint to open Office files / PDFs in the browser viewer
+    // instead of triggering a download or launching the desktop client.
+    return absolute + (absolute.indexOf('?') === -1 ? '?web=1' : '&web=1');
   }
 
   private openEdit = (doc: IDocument): void => {
