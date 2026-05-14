@@ -128,11 +128,29 @@ export class SharePointService {
   // ---------------------------------------------------------------------------
   public static async isCurrentUserAdmin(): Promise<boolean> {
     try {
+      // Site collection admins always have admin powers, even without being in the Owners group.
+      const currentUser = await _sp.web.currentUser.select('Id', 'IsSiteAdmin', 'Email', 'LoginName')();
+      if ((currentUser as { IsSiteAdmin?: boolean }).IsSiteAdmin) {
+        return true;
+      }
       const ownerGroup = await _sp.web.associatedOwnerGroup();
-      const users = await _sp.web.siteGroups.getById(ownerGroup.Id).users();
-      const me = _context.pageContext.user.loginName.toLowerCase();
-      return users.some(u => (u.LoginName || '').toLowerCase() === me);
-    } catch {
+      const users = await _sp.web.siteGroups.getById(ownerGroup.Id).users
+        .select('Id', 'Email', 'LoginName')();
+      const myId = (currentUser as { Id: number }).Id;
+      const myEmail = ((currentUser as { Email?: string }).Email
+        || _context.pageContext.user.email || '').toLowerCase();
+      const myLogin = ((currentUser as { LoginName?: string }).LoginName
+        || _context.pageContext.user.loginName || '').toLowerCase();
+      return users.some(u => {
+        const uu = u as { Id?: number; Email?: string; LoginName?: string };
+        if (uu.Id != null && uu.Id === myId) return true;
+        if (myEmail && (uu.Email || '').toLowerCase() === myEmail) return true;
+        if (myLogin && (uu.LoginName || '').toLowerCase() === myLogin) return true;
+        return false;
+      });
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.warn('[DocCenter] admin check failed:', e);
       return false;
     }
   }
