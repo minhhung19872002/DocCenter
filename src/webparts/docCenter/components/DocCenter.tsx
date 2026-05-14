@@ -24,7 +24,7 @@ export class DocCenter extends React.Component<IDocCenterProps, IState> {
       await SharePointService.ensureProvisioned(this.props.documentsLibraryTitle, this.props.hashtagsListTitle);
       const [hashtags, isAdmin] = await Promise.all([
         SharePointService.getHashtags(this.props.hashtagsListTitle),
-        SharePointService.isCurrentUserAdmin()
+        SharePointService.isCurrentUserAdmin(this.props.documentsLibraryTitle)
       ]);
       this.setState({ loading: false, hashtags, isAdmin });
     } catch (e) {

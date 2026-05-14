@@ -10,6 +10,9 @@ import '@pnp/sp/views';
 import '@pnp/sp/views/list';
 import '@pnp/sp/site-users/web';
 import '@pnp/sp/site-groups/web';
+import '@pnp/sp/security';
+import '@pnp/sp/security/list';
+import { PermissionKind } from '@pnp/sp/security';
 import { IHashtag, IDocument, IUploadResult, SearchMode } from './types';
 
 const HASHTAG_FIELD_INTERNAL = 'DocHashtags';
@@ -20,7 +23,6 @@ const ADD_FIELD_INTERNAL_NAME_HINT = 8;
 const ADD_FIELD_TO_DEFAULT_VIEW = 16;
 
 let _sp: SPFI;
-let _context: WebPartContext;
 
 // Cache of "actual" hashtag-field internal name, keyed by library title.
 // SharePoint sometimes mangles the internal name when a field is created via XML;
@@ -30,7 +32,6 @@ const _fieldNameByLibrary: Map<string, string> = new Map();
 export class SharePointService {
 
   public static configure(context: WebPartContext): void {
-    _context = context;
     _sp = spfi().using(SPFx(context));
   }
 
@@ -126,33 +127,36 @@ export class SharePointService {
   // ---------------------------------------------------------------------------
   // Admin check — owner group of the current site.
   // ---------------------------------------------------------------------------
-  public static async isCurrentUserAdmin(): Promise<boolean> {
+  /**
+   * Returns true if the current user has Owner-level rights on the document library
+   * (i.e. they have ManagePermissions on the list — the privilege that distinguishes
+   * Owners/Full-Control from Contribute/Edit users).
+   */
+  public static async isCurrentUserAdmin(libraryTitle: string): Promise<boolean> {
     try {
-      // Site collection admins always have admin powers, even without being in the Owners group.
-      const currentUser = await _sp.web.currentUser.select('Id', 'IsSiteAdmin', 'Email', 'LoginName')();
-      if ((currentUser as { IsSiteAdmin?: boolean }).IsSiteAdmin) {
-        return true;
-      }
-      const ownerGroup = await _sp.web.associatedOwnerGroup();
-      const users = await _sp.web.siteGroups.getById(ownerGroup.Id).users
-        .select('Id', 'Email', 'LoginName')();
-      const myId = (currentUser as { Id: number }).Id;
-      const myEmail = ((currentUser as { Email?: string }).Email
-        || _context.pageContext.user.email || '').toLowerCase();
-      const myLogin = ((currentUser as { LoginName?: string }).LoginName
-        || _context.pageContext.user.loginName || '').toLowerCase();
-      return users.some(u => {
-        const uu = u as { Id?: number; Email?: string; LoginName?: string };
-        if (uu.Id != null && uu.Id === myId) return true;
-        if (myEmail && (uu.Email || '').toLowerCase() === myEmail) return true;
-        if (myLogin && (uu.LoginName || '').toLowerCase() === myLogin) return true;
-        return false;
-      });
+      const perms = await _sp.web.lists.getByTitle(libraryTitle).getCurrentUserEffectivePermissions();
+      return this.hasPermission(perms, PermissionKind.ManagePermissions);
     } catch (e) {
       // eslint-disable-next-line no-console
       console.warn('[DocCenter] admin check failed:', e);
       return false;
     }
+  }
+
+  /**
+   * Bitwise check against SharePoint BasePermissions { Low, High }.
+   * Each PermissionKind value is a 1-based bit position into a 64-bit mask;
+   * bits 1-32 live in `Low`, bits 33-64 in `High`.
+   */
+  private static hasPermission(perms: { Low: number; High: number }, kind: PermissionKind): boolean {
+    if (kind <= 0) return false;
+    const bit = (kind as number) - 1;
+    if (bit < 32) {
+      // eslint-disable-next-line no-bitwise
+      return (perms.Low & (1 << bit)) !== 0;
+    }
+    // eslint-disable-next-line no-bitwise
+    return (perms.High & (1 << (bit - 32))) !== 0;
   }
 
   // ---------------------------------------------------------------------------
