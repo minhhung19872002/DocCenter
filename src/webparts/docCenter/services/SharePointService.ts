@@ -186,7 +186,8 @@ export class SharePointService {
       const item = await _sp.web.getFileByServerRelativePath(fileInfo.ServerRelativeUrl).getItem();
       if (hashtagIds.length > 0) {
         const fieldName = await this.resolveHashtagFieldName(libraryTitle);
-        await item.update({ [`${fieldName}Id`]: { results: hashtagIds } });
+        // PnP v4 / modern REST: multi-lookup expects a bare array, not { results: [...] }.
+        await item.update({ [`${fieldName}Id`]: hashtagIds });
       }
       return { success: true, fileName: file.name };
     } catch (e) {
@@ -261,6 +262,6 @@ export class SharePointService {
   ): Promise<void> {
     const fieldName = await this.resolveHashtagFieldName(libraryTitle);
     await _sp.web.lists.getByTitle(libraryTitle).items.getById(itemId)
-      .update({ [`${fieldName}Id`]: { results: hashtagIds } });
+      .update({ [`${fieldName}Id`]: hashtagIds });
   }
 }
