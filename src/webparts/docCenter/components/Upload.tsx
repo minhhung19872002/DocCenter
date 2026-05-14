@@ -3,6 +3,11 @@ import {
   PrimaryButton, DefaultButton, Stack, Label, MessageBar, MessageBarType,
   ProgressIndicator, TextField, Icon
 } from '@fluentui/react';
+import {
+  initializeFileTypeIcons, getFileTypeIconProps
+} from '@fluentui/react-file-type-icons';
+
+initializeFileTypeIcons();
 import { IHashtag, IUploadResult } from '../services/types';
 import { SharePointService } from '../services/SharePointService';
 import styles from './DocCenter.module.scss';
@@ -123,12 +128,19 @@ export class Upload extends React.Component<IProps, IState> {
         {files.length > 0 && (
           <div>
             <Label>{files.length} file(s) ready</Label>
-            {files.map((f, i) => (
-              <div key={i} className={styles.fileChip}>
-                <span><Icon iconName="Page" /> {f.name} <span className={styles.muted}>({Math.round(f.size / 1024)} KB)</span></span>
-                <DefaultButton iconProps={{ iconName: 'Cancel' }} text="Remove" onClick={() => this.removeFile(i)} />
-              </div>
-            ))}
+            {files.map((f, i) => {
+              const dot = f.name.lastIndexOf('.');
+              const ext = dot >= 0 ? f.name.substring(dot + 1).toLowerCase() : '';
+              return (
+                <div key={i} className={styles.fileChip}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                    <Icon {...getFileTypeIconProps({ extension: ext, size: 20 })} />
+                    {f.name} <span className={styles.muted}>({Math.round(f.size / 1024)} KB)</span>
+                  </span>
+                  <DefaultButton iconProps={{ iconName: 'Cancel' }} text="Remove" onClick={() => this.removeFile(i)} />
+                </div>
+              );
+            })}
           </div>
         )}
 

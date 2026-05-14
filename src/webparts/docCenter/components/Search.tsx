@@ -4,6 +4,11 @@ import {
   DefaultButton, PrimaryButton, IconButton, MessageBar, MessageBarType,
   Spinner, SpinnerSize, Link, Icon, Dialog, DialogType, DialogFooter
 } from '@fluentui/react';
+import {
+  initializeFileTypeIcons, getFileTypeIconProps
+} from '@fluentui/react-file-type-icons';
+
+initializeFileTypeIcons();
 import { IHashtag, IDocument, SearchMode } from '../services/types';
 import { SharePointService } from '../services/SharePointService';
 import styles from './DocCenter.module.scss';
@@ -78,6 +83,11 @@ export class Search extends React.Component<IProps, IState> {
 
   public componentDidMount(): void {
     void this.runSearch();
+  }
+
+  private getExtension(name: string): string {
+    const dot = name.lastIndexOf('.');
+    return dot >= 0 ? name.substring(dot + 1).toLowerCase() : '';
   }
 
   private buildAbsoluteUrl(serverRelativeUrl: string): string {
@@ -200,8 +210,8 @@ export class Search extends React.Component<IProps, IState> {
             {results.map(d => (
               <div key={d.Id} className={styles.docRow}>
                 <div style={{ flex: 1 }}>
-                  <div>
-                    <Icon iconName="Page" />{' '}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <Icon {...getFileTypeIconProps({ extension: this.getExtension(d.Name), size: 20 })} />
                     <Link href={this.buildAbsoluteUrl(d.ServerRelativeUrl)} target="_blank">
                       {d.Name}
                     </Link>
