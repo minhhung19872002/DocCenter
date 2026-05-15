@@ -7,7 +7,7 @@ import {
 import {
   initializeFileTypeIcons, getFileTypeIconProps
 } from '@fluentui/react-file-type-icons';
-import { IHashtag, IDocument } from '../services/types';
+import { IHashtag, IDocument, groupHashtagsByCategory } from '../services/types';
 import { SharePointService } from '../services/SharePointService';
 import styles from './DocCenter.module.scss';
 
@@ -113,43 +113,46 @@ export class DocTagsEditor extends React.Component<IProps, IState> {
       ? docs.filter(d => d.Name.toLowerCase().includes(nameQuery.toLowerCase()))
       : docs;
 
-    const filteredEditTags = this.props.hashtags.filter(
-      t => !editFilter || t.Title.toLowerCase().includes(editFilter.toLowerCase())
-    );
+    const filteredEditTags = this.props.hashtags.filter(t => {
+      if (!editFilter) return true;
+      const q = editFilter.toLowerCase();
+      return t.Title.toLowerCase().includes(q)
+        || (t.Description || '').toLowerCase().includes(q);
+    });
 
     if (loading) {
-      return <Spinner size={SpinnerSize.large} label="Loading documents..." styles={{ root: { marginTop: 24 } }} />;
+      return <Spinner size={SpinnerSize.large} label="Đang tải tài liệu..." styles={{ root: { marginTop: 24 } }} />;
     }
 
     return (
       <Stack tokens={{ childrenGap: 16 }} className={styles.section}>
         <MessageBar messageBarType={MessageBarType.info}>
-          Edit hashtags on any uploaded document. Changes save instantly to the document item.
+          Sửa hashtag cho bất kỳ tài liệu đã tải lên. Thay đổi được lưu tức thì.
         </MessageBar>
 
         <div className={styles.card}>
           <Stack horizontal tokens={{ childrenGap: 8 }} verticalAlign="end">
             <Stack.Item grow>
               <TextField
-                label="Find a document"
-                placeholder="Type part of the file name..."
+                label="Tìm tài liệu"
+                placeholder="Nhập một phần tên file..."
                 iconProps={{ iconName: 'Search' }}
                 value={nameQuery}
                 onChange={(_, v) => this.setState({ nameQuery: v || '' })}
               />
             </Stack.Item>
-            <DefaultButton text="Refresh" iconProps={{ iconName: 'Refresh' }} onClick={this.reload} />
+            <DefaultButton text="Làm mới" iconProps={{ iconName: 'Refresh' }} onClick={this.reload} />
           </Stack>
         </div>
 
         {loadError && <MessageBar messageBarType={MessageBarType.error}>{loadError}</MessageBar>}
 
         <Stack horizontal verticalAlign="center" tokens={{ childrenGap: 8 }}>
-          <span className={styles.countPill}>{filteredDocs.length} document(s)</span>
+          <span className={styles.countPill}>{filteredDocs.length} tài liệu</span>
         </Stack>
 
         {filteredDocs.length === 0 && (
-          <MessageBar messageBarType={MessageBarType.info}>No documents found.</MessageBar>
+          <MessageBar messageBarType={MessageBarType.info}>Không tìm thấy tài liệu.</MessageBar>
         )}
 
         <div className={styles.docList}>
@@ -164,17 +167,17 @@ export class DocTagsEditor extends React.Component<IProps, IState> {
                 </div>
                 <div className={styles.docMeta}>
                   {d.SizeKB ? `${d.SizeKB} KB · ` : ''}
-                  Modified {new Date(d.Modified).toLocaleString()}{d.ModifiedBy ? ` · ${d.ModifiedBy}` : ''}
+                  {new Date(d.Modified).toLocaleString()}{d.CreatedBy ? ` · ${d.CreatedBy}` : ''}
                 </div>
                 <div className={styles.tagWrap}>
-                  {d.Hashtags.length === 0 && <span className={styles.muted}>No hashtags</span>}
+                  {d.Hashtags.length === 0 && <span className={styles.muted}>Không có hashtag</span>}
                   {d.Hashtags.map(t => (
                     <span key={t.Id} className={`${styles.tagPill} ${styles.tagPillReadonly}`}>#{t.Title}</span>
                   ))}
                 </div>
               </div>
               <PrimaryButton
-                text="Edit tags"
+                text="Sửa tag"
                 iconProps={{ iconName: 'Edit' }}
                 onClick={() => this.openEdit(d)}
               />
@@ -189,39 +192,47 @@ export class DocTagsEditor extends React.Component<IProps, IState> {
           maxWidth={720}
           dialogContentProps={{
             type: DialogType.normal,
-            title: 'Edit hashtags',
-            subText: editingDoc ? `For: ${editingDoc.Name}` : ''
+            title: 'Sửa hashtag',
+            subText: editingDoc ? `Cho: ${editingDoc.Name}` : ''
           }}
         >
           <Stack tokens={{ childrenGap: 10 }}>
             <TextField
-              placeholder="Filter hashtags..."
+              placeholder="Lọc hashtag..."
               iconProps={{ iconName: 'Filter' }}
               value={editFilter}
               onChange={(_, v) => this.setState({ editFilter: v || '' })}
               disabled={savingEdit}
             />
-            <div className={styles.tagWrap} style={{ maxHeight: 320, overflowY: 'auto' }}>
-              {filteredEditTags.length === 0 && <span className={styles.muted}>No hashtags found.</span>}
-              {filteredEditTags.map(t => {
-                const selected = editingTagIds.indexOf(t.Id) !== -1;
-                return (
-                  <span
-                    key={t.Id}
-                    className={`${styles.tagPill} ${selected ? styles.tagPillSelected : ''}`}
-                    onClick={() => !savingEdit && this.toggleEditTag(t.Id)}
-                  >
-                    #{t.Title}
-                  </span>
-                );
-              })}
+            <div style={{ maxHeight: 320, overflowY: 'auto' }}>
+              {filteredEditTags.length === 0 && <span className={styles.muted}>Không tìm thấy hashtag.</span>}
+              {groupHashtagsByCategory(filteredEditTags).map(g => (
+                <div key={g.name} style={{ marginTop: 6 }}>
+                  <div className={styles.muted} style={{ fontWeight: 600, marginBottom: 4 }}>{g.name}</div>
+                  <div className={styles.tagWrap} style={{ marginTop: 0 }}>
+                    {g.items.map(t => {
+                      const selected = editingTagIds.indexOf(t.Id) !== -1;
+                      return (
+                        <span
+                          key={t.Id}
+                          className={`${styles.tagPill} ${selected ? styles.tagPillSelected : ''}`}
+                          title={t.Description || ''}
+                          onClick={() => !savingEdit && this.toggleEditTag(t.Id)}
+                        >
+                          #{t.Title}
+                        </span>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
             </div>
-            <span className={styles.muted}>{editingTagIds.length} selected</span>
+            <span className={styles.muted}>Đã chọn {editingTagIds.length}</span>
             {editError && <MessageBar messageBarType={MessageBarType.error}>{editError}</MessageBar>}
           </Stack>
           <DialogFooter>
-            <PrimaryButton text={savingEdit ? 'Saving...' : 'Save'} onClick={this.saveEdit} disabled={savingEdit} />
-            <DefaultButton text="Cancel" onClick={this.cancelEdit} disabled={savingEdit} />
+            <PrimaryButton text={savingEdit ? 'Đang lưu...' : 'Lưu'} onClick={this.saveEdit} disabled={savingEdit} />
+            <DefaultButton text="Huỷ" onClick={this.cancelEdit} disabled={savingEdit} />
           </DialogFooter>
         </Dialog>
       </Stack>

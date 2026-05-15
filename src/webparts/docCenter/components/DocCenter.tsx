@@ -45,7 +45,7 @@ export class DocCenter extends React.Component<IDocCenterProps, IState> {
       return (
         <ThemeProvider theme={claudeTheme}>
           <div className={styles.docCenter}>
-            <Spinner size={SpinnerSize.large} label="Loading Document Center..." />
+            <Spinner size={SpinnerSize.large} label="Đang tải Trung tâm Tài liệu..." />
           </div>
         </ThemeProvider>
       );
@@ -66,24 +66,24 @@ export class DocCenter extends React.Component<IDocCenterProps, IState> {
         <div className={styles.docCenter}>
           <div className={styles.header}>
             <div className={styles.headerLeft}>
-              <div className={styles.title}>Document Center</div>
+              <div className={styles.title}>Trung tâm Tài liệu</div>
               <div className={styles.subtitle}>
-                Upload documents, tag them with hashtags, and find them instantly.
+                Tải lên tài liệu, gắn hashtag và tìm kiếm nhanh chóng.
               </div>
             </div>
             <div className={styles.headerRight}>
-              {isAdmin && <span className={styles.adminBadge}>● Admin</span>}
+              {isAdmin && <span className={styles.adminBadge}>● Quản trị</span>}
               <span className={styles.metaChip}>
-                Library: <b style={{ marginLeft: 4 }}>{this.props.documentsLibraryTitle}</b>
+                Thư viện: <b style={{ marginLeft: 4 }}>{this.props.documentsLibraryTitle}</b>
               </span>
               <span className={styles.metaChip}>
-                Tags: <b style={{ marginLeft: 4 }}>{this.props.hashtagsListTitle}</b>
+                Hashtag: <b style={{ marginLeft: 4 }}>{this.props.hashtagsListTitle}</b>
               </span>
             </div>
           </div>
 
           <Pivot styles={{ root: { marginTop: 16, marginBottom: 8 } }}>
-            <PivotItem headerText="Upload" itemIcon="Upload">
+            <PivotItem headerText="Tải lên" itemIcon="Upload">
               <Upload
                 libraryTitle={this.props.documentsLibraryTitle}
                 hashtags={hashtags}
@@ -93,7 +93,7 @@ export class DocCenter extends React.Component<IDocCenterProps, IState> {
               />
             </PivotItem>
 
-            <PivotItem headerText="Search" itemIcon="Search">
+            <PivotItem headerText="Tìm kiếm" itemIcon="Search">
               <Search
                 libraryTitle={this.props.documentsLibraryTitle}
                 hashtagsListTitle={this.props.hashtagsListTitle}
@@ -104,7 +104,7 @@ export class DocCenter extends React.Component<IDocCenterProps, IState> {
             </PivotItem>
 
             {isAdmin && (
-              <PivotItem headerText="Admin" itemIcon="Settings">
+              <PivotItem headerText="Quản trị" itemIcon="Settings">
                 <Admin
                   hashtagsListTitle={this.props.hashtagsListTitle}
                   libraryTitle={this.props.documentsLibraryTitle}

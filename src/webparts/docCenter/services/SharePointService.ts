@@ -18,6 +18,12 @@ import { IHashtag, IDocument, IUploadResult, SearchMode } from './types';
 const HASHTAG_FIELD_INTERNAL = 'DocHashtags';
 const HASHTAG_FIELD_DISPLAY = 'Hashtags';
 
+const HASHTAG_DESC_FIELD_INTERNAL = 'HashtagDescription';
+const HASHTAG_DESC_FIELD_DISPLAY = 'Description';
+
+const HASHTAG_CAT_FIELD_INTERNAL = 'HashtagCategory';
+const HASHTAG_CAT_FIELD_DISPLAY = 'Category';
+
 // AddFieldOptions flags — see SharePoint AddFieldOptions enum.
 const ADD_FIELD_INTERNAL_NAME_HINT = 8;
 const ADD_FIELD_TO_DEFAULT_VIEW = 16;
@@ -28,6 +34,8 @@ let _sp: SPFI;
 // SharePoint sometimes mangles the internal name when a field is created via XML;
 // callers must use the resolved name for OData property paths like `${name}Id`.
 const _fieldNameByLibrary: Map<string, string> = new Map();
+
+let _currentUserId: number | undefined;
 
 export class SharePointService {
 
@@ -41,10 +49,66 @@ export class SharePointService {
   public static async ensureProvisioned(libraryTitle: string, hashtagsListTitle: string): Promise<void> {
     _fieldNameByLibrary.delete(libraryTitle);
     const hashtagsListId = await this.ensureHashtagsList(hashtagsListTitle);
+    await this.ensureHashtagDescriptionField(hashtagsListTitle);
+    await this.ensureHashtagCategoryField(hashtagsListTitle);
     await this.ensureDocumentLibrary(libraryTitle);
     await this.ensureHashtagsLookupField(libraryTitle, hashtagsListId);
     // Resolve and cache the internal name now so first upload doesn't pay the cost.
     await this.resolveHashtagFieldName(libraryTitle);
+  }
+
+  private static async ensureHashtagCategoryField(hashtagsListTitle: string): Promise<void> {
+    const list = _sp.web.lists.getByTitle(hashtagsListTitle);
+    try {
+      await list.fields.getByInternalNameOrTitle(HASHTAG_CAT_FIELD_INTERNAL)();
+      return;
+    } catch { /* not found, fall through */ }
+    try {
+      await list.fields.getByInternalNameOrTitle(HASHTAG_CAT_FIELD_DISPLAY)();
+      return;
+    } catch { /* not found, fall through */ }
+    const schemaXml = `<Field Type="Text" `
+      + `DisplayName="${HASHTAG_CAT_FIELD_INTERNAL}" `
+      + `StaticName="${HASHTAG_CAT_FIELD_INTERNAL}" `
+      + `Name="${HASHTAG_CAT_FIELD_INTERNAL}" `
+      + `MaxLength="80" />`;
+    await list.fields.createFieldAsXml({
+      SchemaXml: schemaXml,
+      Options: ADD_FIELD_INTERNAL_NAME_HINT | ADD_FIELD_TO_DEFAULT_VIEW
+    });
+    try {
+      await list.fields.getByInternalNameOrTitle(HASHTAG_CAT_FIELD_INTERNAL)
+        .update({ Title: HASHTAG_CAT_FIELD_DISPLAY });
+    } catch {
+      // Non-fatal — column still usable.
+    }
+  }
+
+  private static async ensureHashtagDescriptionField(hashtagsListTitle: string): Promise<void> {
+    const list = _sp.web.lists.getByTitle(hashtagsListTitle);
+    try {
+      await list.fields.getByInternalNameOrTitle(HASHTAG_DESC_FIELD_INTERNAL)();
+      return;
+    } catch { /* not found, fall through */ }
+    try {
+      await list.fields.getByInternalNameOrTitle(HASHTAG_DESC_FIELD_DISPLAY)();
+      return;
+    } catch { /* not found, fall through */ }
+    const schemaXml = `<Field Type="Note" `
+      + `DisplayName="${HASHTAG_DESC_FIELD_INTERNAL}" `
+      + `StaticName="${HASHTAG_DESC_FIELD_INTERNAL}" `
+      + `Name="${HASHTAG_DESC_FIELD_INTERNAL}" `
+      + `NumLines="3" RichText="FALSE" AppendOnly="FALSE" />`;
+    await list.fields.createFieldAsXml({
+      SchemaXml: schemaXml,
+      Options: ADD_FIELD_INTERNAL_NAME_HINT | ADD_FIELD_TO_DEFAULT_VIEW
+    });
+    try {
+      await list.fields.getByInternalNameOrTitle(HASHTAG_DESC_FIELD_INTERNAL)
+        .update({ Title: HASHTAG_DESC_FIELD_DISPLAY });
+    } catch {
+      // Non-fatal — column still usable.
+    }
   }
 
   private static async ensureHashtagsList(title: string): Promise<string> {
@@ -132,6 +196,13 @@ export class SharePointService {
    * (i.e. they have ManagePermissions on the list — the privilege that distinguishes
    * Owners/Full-Control from Contribute/Edit users).
    */
+  private static async getCurrentUserId(): Promise<number> {
+    if (_currentUserId !== undefined) return _currentUserId;
+    const user = await _sp.web.currentUser();
+    _currentUserId = user.Id;
+    return _currentUserId;
+  }
+
   public static async isCurrentUserAdmin(libraryTitle: string): Promise<boolean> {
     try {
       const perms = await _sp.web.lists.getByTitle(libraryTitle).getCurrentUserEffectivePermissions();
@@ -164,22 +235,50 @@ export class SharePointService {
   // ---------------------------------------------------------------------------
   public static async getHashtags(hashtagsListTitle: string): Promise<IHashtag[]> {
     const items = await _sp.web.lists.getByTitle(hashtagsListTitle).items
-      .select('Id', 'Title')
+      .select('Id', 'Title', HASHTAG_DESC_FIELD_INTERNAL, HASHTAG_CAT_FIELD_INTERNAL)
       .orderBy('Title', true)
       .top(5000)();
-    return items.map(i => ({ Id: i.Id, Title: i.Title }));
+    return items.map((i: Record<string, unknown>) => ({
+      Id: i.Id as number,
+      Title: i.Title as string,
+      Description: (i[HASHTAG_DESC_FIELD_INTERNAL] as string) || '',
+      Category: (i[HASHTAG_CAT_FIELD_INTERNAL] as string) || ''
+    }));
   }
 
-  public static async addHashtag(hashtagsListTitle: string, title: string): Promise<IHashtag> {
+  public static async addHashtag(
+    hashtagsListTitle: string,
+    title: string,
+    description?: string,
+    category?: string
+  ): Promise<IHashtag> {
     const clean = this.normalizeHashtag(title);
-    const result = await _sp.web.lists.getByTitle(hashtagsListTitle).items.add({ Title: clean });
+    const desc = (description || '').trim();
+    const cat = (category || '').trim();
+    const payload: Record<string, unknown> = { Title: clean };
+    if (desc) payload[HASHTAG_DESC_FIELD_INTERNAL] = desc;
+    if (cat) payload[HASHTAG_CAT_FIELD_INTERNAL] = cat;
+    const result = await _sp.web.lists.getByTitle(hashtagsListTitle).items.add(payload);
     const newId: number = result?.Id ?? result?.data?.Id;
-    return { Id: newId, Title: clean };
+    return { Id: newId, Title: clean, Description: desc, Category: cat };
   }
 
-  public static async updateHashtag(hashtagsListTitle: string, id: number, newTitle: string): Promise<void> {
+  public static async updateHashtag(
+    hashtagsListTitle: string,
+    id: number,
+    newTitle: string,
+    description?: string,
+    category?: string
+  ): Promise<void> {
     const clean = this.normalizeHashtag(newTitle);
-    await _sp.web.lists.getByTitle(hashtagsListTitle).items.getById(id).update({ Title: clean });
+    const payload: Record<string, unknown> = { Title: clean };
+    if (description !== undefined) {
+      payload[HASHTAG_DESC_FIELD_INTERNAL] = description.trim();
+    }
+    if (category !== undefined) {
+      payload[HASHTAG_CAT_FIELD_INTERNAL] = category.trim();
+    }
+    await _sp.web.lists.getByTitle(hashtagsListTitle).items.getById(id).update(payload);
   }
 
   public static async deleteHashtag(hashtagsListTitle: string, id: number): Promise<void> {
@@ -199,11 +298,11 @@ export class SharePointService {
     file: File,
     hashtagIds: number[]
   ): Promise<IUploadResult> {
+    const uniqueName = this.appendTimestampToFileName(file.name);
     try {
-      const list = _sp.web.lists.getByTitle(libraryTitle);
-      const rootFolder = await list.rootFolder();
-      const fileInfo = await _sp.web.getFolderByServerRelativePath(rootFolder.ServerRelativeUrl)
-        .files.addUsingPath(file.name, file, { Overwrite: true });
+      const yearFolderUrl = await this.ensureYearFolder(libraryTitle);
+      const fileInfo = await _sp.web.getFolderByServerRelativePath(yearFolderUrl)
+        .files.addUsingPath(uniqueName, file, { Overwrite: true });
 
       const item = await _sp.web.getFileByServerRelativePath(fileInfo.ServerRelativeUrl).getItem();
       if (hashtagIds.length > 0) {
@@ -211,11 +310,35 @@ export class SharePointService {
         // PnP v4 / modern REST: multi-lookup expects a bare array, not { results: [...] }.
         await item.update({ [`${fieldName}Id`]: hashtagIds });
       }
-      return { success: true, fileName: file.name };
+      return { success: true, fileName: uniqueName };
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
-      return { success: false, fileName: file.name, error: msg };
+      return { success: false, fileName: uniqueName, error: msg };
     }
+  }
+
+  private static async ensureYearFolder(libraryTitle: string): Promise<string> {
+    const year = new Date().getFullYear().toString();
+    const list = _sp.web.lists.getByTitle(libraryTitle);
+    const rootFolder = await list.rootFolder();
+    const yearFolderUrl = `${rootFolder.ServerRelativeUrl}/${year}`;
+    try {
+      await _sp.web.getFolderByServerRelativePath(yearFolderUrl)();
+      return yearFolderUrl;
+    } catch {
+      await _sp.web.folders.addUsingPath(yearFolderUrl);
+      return yearFolderUrl;
+    }
+  }
+
+  private static appendTimestampToFileName(originalName: string): string {
+    const d = new Date();
+    const pad = (n: number): string => n.toString().padStart(2, '0');
+    const stamp = `${pad(d.getDate())}${pad(d.getMonth() + 1)}${d.getFullYear()}`
+      + `_${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
+    const dot = originalName.lastIndexOf('.');
+    if (dot <= 0) return `${originalName}_${stamp}`;
+    return `${originalName.substring(0, dot)}_${stamp}${originalName.substring(dot)}`;
   }
 
   // ---------------------------------------------------------------------------
@@ -225,24 +348,32 @@ export class SharePointService {
     libraryTitle: string,
     selectedHashtagIds: number[],
     mode: SearchMode,
-    nameQuery: string
+    nameQuery: string,
+    restrictToCurrentUser: boolean = false
   ): Promise<IDocument[]> {
     const list = _sp.web.lists.getByTitle(libraryTitle);
     const fieldName = await this.resolveHashtagFieldName(libraryTitle);
+
+    let filter = 'FSObjType eq 0';
+    if (restrictToCurrentUser) {
+      const uid = await this.getCurrentUserId();
+      filter += ` and AuthorId eq ${uid}`;
+    }
 
     const items = await list.items
       .select(
         'Id',
         'FileLeafRef',
         'FileRef',
+        'Created',
         'Modified',
-        'Editor/Title',
+        'Author/Title',
         'File/Length',
         `${fieldName}/Id`,
         `${fieldName}/Title`
       )
-      .expand('Editor', 'File', fieldName)
-      .filter("FSObjType eq 0")
+      .expand('Author', 'File', fieldName)
+      .filter(filter)
       .top(5000)();
 
     const docs: IDocument[] = items.map((i: Record<string, unknown>) => {
@@ -250,22 +381,28 @@ export class SharePointService {
       const tags: IHashtag[] = Array.isArray(raw)
         ? (raw as Array<{ Id: number; Title: string }>).map(t => ({ Id: t.Id, Title: t.Title }))
         : [];
-      const editor = i.Editor as { Title?: string } | undefined;
+      const author = i.Author as { Title?: string } | undefined;
       const filePart = i.File as { Length?: number } | undefined;
       return {
         Id: i.Id as number,
         Name: i.FileLeafRef as string,
         ServerRelativeUrl: i.FileRef as string,
+        Created: i.Created as string,
         Modified: i.Modified as string,
-        ModifiedBy: editor?.Title ?? '',
+        CreatedBy: author?.Title ?? '',
         SizeKB: filePart?.Length ? Math.round(filePart.Length / 1024) : 0,
         Hashtags: tags
       };
     });
 
     return docs.filter(d => {
-      if (nameQuery && !d.Name.toLowerCase().includes(nameQuery.toLowerCase())) {
-        return false;
+      if (nameQuery) {
+        const q = nameQuery.toLowerCase();
+        const inName = d.Name.toLowerCase().includes(q);
+        const inTags = d.Hashtags.some(t => t.Title.toLowerCase().includes(q));
+        if (!inName && !inTags) {
+          return false;
+        }
       }
       if (selectedHashtagIds.length === 0) {
         return true;
@@ -285,5 +422,25 @@ export class SharePointService {
     const fieldName = await this.resolveHashtagFieldName(libraryTitle);
     await _sp.web.lists.getByTitle(libraryTitle).items.getById(itemId)
       .update({ [`${fieldName}Id`]: hashtagIds });
+  }
+
+  public static async deleteDocument(libraryTitle: string, itemId: number): Promise<void> {
+    await _sp.web.lists.getByTitle(libraryTitle).items.getById(itemId).recycle();
+  }
+
+  public static async renameDocument(libraryTitle: string, itemId: number, newName: string): Promise<void> {
+    const clean = (newName || '').trim();
+    if (!clean) throw new Error('New name cannot be empty.');
+    if (/[\\/:*?"<>|]/.test(clean)) {
+      throw new Error('Name contains invalid characters (\\ / : * ? " < > |).');
+    }
+    const list = _sp.web.lists.getByTitle(libraryTitle);
+    const item = await list.items.getById(itemId).select('FileRef')() as { FileRef: string };
+    const currentPath = item.FileRef;
+    const slash = currentPath.lastIndexOf('/');
+    const parent = currentPath.substring(0, slash);
+    const newPath = `${parent}/${clean}`;
+    if (newPath === currentPath) return;
+    await _sp.web.getFileByServerRelativePath(currentPath).moveByPath(newPath, true);
   }
 }
