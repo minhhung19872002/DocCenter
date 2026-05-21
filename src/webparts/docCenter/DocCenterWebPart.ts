@@ -17,10 +17,13 @@ export interface IDocCenterWebPartProps {
   hashtagsListTitle: string;
 }
 
+const DOC_CENTER_APP_BODY_CLASS = 'doc-center-app-page';
+
 export default class DocCenterWebPart extends BaseClientSideWebPart<IDocCenterWebPartProps> {
 
   protected onInit(): Promise<void> {
     return super.onInit().then(() => {
+      document.body.classList.add(DOC_CENTER_APP_BODY_CLASS);
       SharePointService.configure(this.context);
     });
   }
@@ -36,6 +39,7 @@ export default class DocCenterWebPart extends BaseClientSideWebPart<IDocCenterWe
   }
 
   protected onDispose(): void {
+    document.body.classList.remove(DOC_CENTER_APP_BODY_CLASS);
     ReactDom.unmountComponentAtNode(this.domElement);
   }
 

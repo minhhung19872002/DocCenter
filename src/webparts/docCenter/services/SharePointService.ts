@@ -24,6 +24,8 @@ const HASHTAG_DESC_FIELD_DISPLAY = 'Description';
 const HASHTAG_CAT_FIELD_INTERNAL = 'HashtagCategory';
 const HASHTAG_CAT_FIELD_DISPLAY = 'Category';
 
+const END_USER_DELETE_WINDOW_MS = 24 * 60 * 60 * 1000;
+
 // AddFieldOptions flags — see SharePoint AddFieldOptions enum.
 const ADD_FIELD_INTERNAL_NAME_HINT = 8;
 const ADD_FIELD_TO_DEFAULT_VIEW = 16;
@@ -367,6 +369,7 @@ export class SharePointService {
         'FileRef',
         'Created',
         'Modified',
+        'Author/Id',
         'Author/Title',
         'File/Length',
         `${fieldName}/Id`,
@@ -376,13 +379,19 @@ export class SharePointService {
       .filter(filter)
       .top(5000)();
 
+    const currentUserId = await this.getCurrentUserId();
+    const now = Date.now();
     const docs: IDocument[] = items.map((i: Record<string, unknown>) => {
       const raw = i[fieldName];
       const tags: IHashtag[] = Array.isArray(raw)
         ? (raw as Array<{ Id: number; Title: string }>).map(t => ({ Id: t.Id, Title: t.Title }))
         : [];
-      const author = i.Author as { Title?: string } | undefined;
+      const author = i.Author as { Id?: number; Title?: string } | undefined;
       const filePart = i.File as { Length?: number } | undefined;
+      const created = new Date(i.Created as string).getTime();
+      const canDelete = author?.Id === currentUserId
+        && Number.isFinite(created)
+        && (now - created) < END_USER_DELETE_WINDOW_MS;
       return {
         Id: i.Id as number,
         Name: i.FileLeafRef as string,
@@ -390,6 +399,7 @@ export class SharePointService {
         Created: i.Created as string,
         Modified: i.Modified as string,
         CreatedBy: author?.Title ?? '',
+        CanDelete: canDelete,
         SizeKB: filePart?.Length ? Math.round(filePart.Length / 1024) : 0,
         Hashtags: tags
       };
@@ -425,6 +435,18 @@ export class SharePointService {
   }
 
   public static async deleteDocument(libraryTitle: string, itemId: number): Promise<void> {
+    const item = await _sp.web.lists.getByTitle(libraryTitle).items.getById(itemId)
+      .select('AuthorId', 'Created')() as { AuthorId: number; Created: string };
+
+    const currentUserId = await this.getCurrentUserId();
+    if (item.AuthorId !== currentUserId) {
+      throw new Error('Bạn chỉ có thể xoá tài liệu do chính bạn tải lên.');
+    }
+    const created = new Date(item.Created).getTime();
+    if (!Number.isFinite(created) || (Date.now() - created) >= END_USER_DELETE_WINDOW_MS) {
+      throw new Error('Bạn chỉ có thể xoá tài liệu trong vòng 24 giờ sau khi tải lên.');
+    }
+
     await _sp.web.lists.getByTitle(libraryTitle).items.getById(itemId).recycle();
   }
 

@@ -17,6 +17,44 @@ $radius-input:  8px;
 $shadow-soft: 0 1px 2px rgba(20, 18, 14, 0.04), 0 4px 12px rgba(20, 18, 14, 0.04);
 $shadow-hover: 0 1px 2px rgba(20, 18, 14, 0.06), 0 8px 20px rgba(20, 18, 14, 0.06);
 
+:global {
+  body.doc-center-app-page {
+    overflow: auto;
+  }
+
+  body.doc-center-app-page #SuiteNavWrapper,
+  body.doc-center-app-page #spSiteHeader,
+  body.doc-center-app-page #spLeftNav,
+  body.doc-center-app-page #spCommandBar,
+  body.doc-center-app-page .ms-HubNav,
+  body.doc-center-app-page .sp-App-hubNav-2,
+  body.doc-center-app-page [data-automation-id="pageHeader"],
+  body.doc-center-app-page [data-automation-id="pageCommandBar"],
+  body.doc-center-app-page [data-automation-id="CommentsWrapper"],
+  body.doc-center-app-page [data-automation-id="CanvasSection"] > div:first-child:empty {
+    display: none !important;
+  }
+
+  body.doc-center-app-page [data-automation-id="pageHeader"] + div,
+  body.doc-center-app-page [data-automation-id="Canvas"],
+  body.doc-center-app-page .CanvasComponent,
+  body.doc-center-app-page .SPCanvas,
+  body.doc-center-app-page .SPPageChrome,
+  body.doc-center-app-page .od-ItemsScopeList-page {
+    margin: 0 !important;
+    padding: 0 !important;
+    max-width: none !important;
+  }
+
+  body.doc-center-app-page [data-automation-id="CanvasZone"],
+  body.doc-center-app-page [data-automation-id="CanvasSection"],
+  body.doc-center-app-page [data-automation-id="CanvasControl"] {
+    margin: 0 !important;
+    padding: 0 !important;
+    max-width: none !important;
+  }
+}
+
 .docCenter {
   font-family: "Inter", "Segoe UI", -apple-system, BlinkMacSystemFont, Arial, sans-serif;
   color: $color-text;

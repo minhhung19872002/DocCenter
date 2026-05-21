@@ -47,8 +47,8 @@ interface IState {
 const EDIT_WINDOW_MS = 24 * 60 * 60 * 1000;
 
 const MODE_OPTIONS: IChoiceGroupOption[] = [
-  { key: 'any', text: 'Bất kỳ (HOẶC)' },
-  { key: 'all', text: 'Tất cả (VÀ)' }
+  { key: 'all', text: 'Tất cả (VÀ)' },
+  { key: 'any', text: 'Bất kỳ (HOẶC)' }
 ];
 
 const TOOLTIP_HOST_STYLES: Partial<ITooltipHostStyles> = { root: { display: 'inline-block' } };
@@ -57,7 +57,7 @@ export class Search extends React.Component<IProps, IState> {
 
   public state: IState = {
     selectedTagIds: [],
-    mode: 'any',
+    mode: 'all',
     nameQuery: '',
     filter: '',
     searching: false,
@@ -353,6 +353,14 @@ export class Search extends React.Component<IProps, IState> {
                       ariaLabel="Đổi tên tài liệu"
                       onClick={() => this.openRename(d)}
                     />
+                    {d.CanDelete && (
+                      <IconButton
+                        iconProps={{ iconName: 'Delete' }}
+                        title="Xoá tài liệu"
+                        ariaLabel="Xoá tài liệu"
+                        onClick={() => this.openDelete(d)}
+                      />
+                    )}
                   </Stack>
                 )}
                 {!this.props.isAdmin && this.isWithinEditWindow(d) && (
@@ -369,12 +377,14 @@ export class Search extends React.Component<IProps, IState> {
                       ariaLabel="Sửa hashtag"
                       onClick={() => this.openEdit(d)}
                     />
-                    <IconButton
-                      iconProps={{ iconName: 'Delete' }}
-                      title="Xoá tài liệu"
-                      ariaLabel="Xoá tài liệu"
-                      onClick={() => this.openDelete(d)}
-                    />
+                    {d.CanDelete && (
+                      <IconButton
+                        iconProps={{ iconName: 'Delete' }}
+                        title="Xoá tài liệu"
+                        ariaLabel="Xoá tài liệu"
+                        onClick={() => this.openDelete(d)}
+                      />
+                    )}
                   </Stack>
                 )}
               </div>

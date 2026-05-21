@@ -37,6 +37,7 @@ export interface IDocument {
   Created: string;
   Modified: string;
   CreatedBy: string;
+  CanDelete?: boolean;
   SizeKB: number;
   Hashtags: IHashtag[];
 }
