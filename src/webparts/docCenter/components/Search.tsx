@@ -30,6 +30,8 @@ interface IState {
   searching: boolean;
   results: IDocument[];
   searched: boolean;
+  showSuggestions: boolean;
+  highlightedSuggestion: number;
   editingDoc?: IDocument;
   editingTagIds: number[];
   editFilter: string;
@@ -43,6 +45,9 @@ interface IState {
   renaming: boolean;
   renameError?: string;
 }
+
+const MAX_SUGGESTIONS = 8;
+const SEARCH_DEBOUNCE_MS = 2000;
 
 const EDIT_WINDOW_MS = 24 * 60 * 60 * 1000;
 
@@ -63,12 +68,89 @@ export class Search extends React.Component<IProps, IState> {
     searching: false,
     results: [],
     searched: false,
+    showSuggestions: false,
+    highlightedSuggestion: -1,
     editingTagIds: [],
     editFilter: '',
     savingEdit: false,
     deleting: false,
     renameValue: '',
     renaming: false
+  };
+
+  private suggestionBlurTimer?: number;
+  private searchDebounceTimer?: number;
+
+  public componentWillUnmount(): void {
+    if (this.suggestionBlurTimer !== undefined) {
+      window.clearTimeout(this.suggestionBlurTimer);
+    }
+    if (this.searchDebounceTimer !== undefined) {
+      window.clearTimeout(this.searchDebounceTimer);
+    }
+  }
+
+  private scheduleSearch = (): void => {
+    if (this.searchDebounceTimer !== undefined) {
+      window.clearTimeout(this.searchDebounceTimer);
+    }
+    this.searchDebounceTimer = window.setTimeout(() => {
+      this.searchDebounceTimer = undefined;
+      void this.runSearch();
+    }, SEARCH_DEBOUNCE_MS);
+  };
+
+  private getSuggestions = (): IDocument[] => {
+    const q = this.state.nameQuery.trim().toLowerCase();
+    if (!q) return [];
+    return this.state.results
+      .filter(d => d.Name.toLowerCase().indexOf(q) !== -1)
+      .slice(0, MAX_SUGGESTIONS);
+  };
+
+  private openSuggestion = (d: IDocument): void => {
+    window.open(this.buildAbsoluteUrl(d.ServerRelativeUrl), '_blank');
+    this.setState({ showSuggestions: false, highlightedSuggestion: -1 });
+  };
+
+  private onSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>): void => {
+    if (!this.state.showSuggestions) return;
+    const suggestions = this.getSuggestions();
+    if (suggestions.length === 0) return;
+    const { highlightedSuggestion } = this.state;
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      this.setState({
+        highlightedSuggestion: Math.min(highlightedSuggestion + 1, suggestions.length - 1)
+      });
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      this.setState({
+        highlightedSuggestion: Math.max(highlightedSuggestion - 1, 0)
+      });
+    } else if (e.key === 'Enter') {
+      if (highlightedSuggestion >= 0 && highlightedSuggestion < suggestions.length) {
+        e.preventDefault();
+        this.openSuggestion(suggestions[highlightedSuggestion]);
+      }
+    } else if (e.key === 'Escape') {
+      this.setState({ showSuggestions: false, highlightedSuggestion: -1 });
+    }
+  };
+
+  private onSearchFocus = (): void => {
+    if (this.suggestionBlurTimer !== undefined) {
+      window.clearTimeout(this.suggestionBlurTimer);
+      this.suggestionBlurTimer = undefined;
+    }
+    this.setState({ showSuggestions: true });
+  };
+
+  private onSearchBlur = (): void => {
+    // Delay hiding so a mousedown on a suggestion can register first.
+    this.suggestionBlurTimer = window.setTimeout(() => {
+      this.setState({ showSuggestions: false, highlightedSuggestion: -1 });
+    }, 150);
   };
 
   private isWithinEditWindow = (doc: IDocument): boolean => {
@@ -217,10 +299,12 @@ export class Search extends React.Component<IProps, IState> {
   public render(): React.ReactElement {
     const {
       selectedTagIds, mode, nameQuery, filter, searching, results, searched,
+      showSuggestions, highlightedSuggestion,
       editingDoc, editingTagIds, editFilter, savingEdit, editError,
       deletingDoc, deleting, deleteError,
       renamingDoc, renameValue, renaming, renameError
     } = this.state;
+    const suggestions = this.getSuggestions();
     const matchTag = (t: IHashtag, q: string): boolean => {
       if (!q) return true;
       const needle = q.toLowerCase();
@@ -235,13 +319,39 @@ export class Search extends React.Component<IProps, IState> {
         <div className={styles.card}>
           <Stack horizontal tokens={{ childrenGap: 16 }} verticalAlign="start">
             <Stack.Item grow>
-              <TextField
-                label="Tìm theo tên file hoặc hashtag"
-                placeholder="Nhập một phần tên file hoặc hashtag..."
-                iconProps={{ iconName: 'Search' }}
-                value={nameQuery}
-                onChange={(_, v) => this.setState({ nameQuery: v || '' }, () => void this.runSearch())}
-              />
+              <div className={styles.searchAutocomplete}>
+                <TextField
+                  label="Tìm theo tên file hoặc hashtag"
+                  placeholder="Nhập một phần tên file hoặc hashtag..."
+                  iconProps={{ iconName: 'Search' }}
+                  value={nameQuery}
+                  autoComplete="off"
+                  onChange={(_, v) => this.setState(
+                    { nameQuery: v || '', showSuggestions: true, highlightedSuggestion: -1 },
+                    this.scheduleSearch
+                  )}
+                  onFocus={this.onSearchFocus}
+                  onBlur={this.onSearchBlur}
+                  onKeyDown={this.onSearchKeyDown}
+                />
+                {showSuggestions && suggestions.length > 0 && (
+                  <div className={styles.suggestBox} role="listbox">
+                    {suggestions.map((d, idx) => (
+                      <div
+                        key={d.Id}
+                        role="option"
+                        aria-selected={idx === highlightedSuggestion}
+                        className={`${styles.suggestItem} ${idx === highlightedSuggestion ? styles.suggestItemActive : ''}`}
+                        onMouseDown={e => { e.preventDefault(); this.openSuggestion(d); }}
+                        onMouseEnter={() => this.setState({ highlightedSuggestion: idx })}
+                      >
+                        <Icon {...getFileTypeIconProps({ extension: this.getExtension(d.Name), size: 16 })} />
+                        <span className={styles.suggestName}>{d.Name}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </Stack.Item>
             <Stack.Item>
               <ChoiceGroup
