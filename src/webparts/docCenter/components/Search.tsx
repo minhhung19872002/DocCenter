@@ -116,8 +116,16 @@ export class Search extends React.Component<IProps, IState> {
       .slice(0, MAX_SUGGESTIONS);
   };
 
+  // Mở tài liệu ở tab mới; chặn hành vi mặc định để SharePoint
+  // không chiếm quyền điều hướng và redirect ngay trong tab hiện tại.
+  private openDocument = (e: React.MouseEvent, d: IDocument): void => {
+    e.preventDefault();
+    e.stopPropagation();
+    window.open(this.buildAbsoluteUrl(d.ServerRelativeUrl), '_blank', 'noopener,noreferrer');
+  };
+
   private openSuggestion = (d: IDocument): void => {
-    window.open(this.buildAbsoluteUrl(d.ServerRelativeUrl), '_blank');
+    window.open(this.buildAbsoluteUrl(d.ServerRelativeUrl), '_blank', 'noopener,noreferrer');
     this.setState({ showSuggestions: false, highlightedSuggestion: -1 });
   };
 
@@ -537,7 +545,13 @@ export class Search extends React.Component<IProps, IState> {
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div className={styles.docTitle}>
                     <Icon {...getFileTypeIconProps({ extension: this.getExtension(d.Name), size: 20 })} />
-                    <Link href={this.buildAbsoluteUrl(d.ServerRelativeUrl)} target="_blank">
+                    <Link
+                      href={this.buildAbsoluteUrl(d.ServerRelativeUrl)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      data-interception="off"
+                      onClick={e => this.openDocument(e, d)}
+                    >
                       {d.Name}
                     </Link>
                   </div>
