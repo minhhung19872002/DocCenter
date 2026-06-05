@@ -19,3 +19,7 @@ temp
 .idea
 release
 *.module.scss.ts
+
+# Local-only PowerPoint artifacts
+*.pptx
+build-pptx.ps1
