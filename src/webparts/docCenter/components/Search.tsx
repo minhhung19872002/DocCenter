@@ -32,6 +32,7 @@ interface IState {
   searched: boolean;
   showSuggestions: boolean;
   highlightedSuggestion: number;
+  currentPage: number;
   editingDoc?: IDocument;
   editingTagIds: number[];
   editFilter: string;
@@ -48,6 +49,7 @@ interface IState {
 
 const MAX_SUGGESTIONS = 8;
 const SEARCH_DEBOUNCE_MS = 2000;
+const PAGE_SIZE = 10;
 
 const EDIT_WINDOW_MS = 24 * 60 * 60 * 1000;
 
@@ -70,6 +72,7 @@ export class Search extends React.Component<IProps, IState> {
     searched: false,
     showSuggestions: false,
     highlightedSuggestion: -1,
+    currentPage: 1,
     editingTagIds: [],
     editFilter: '',
     savingEdit: false,
@@ -80,6 +83,8 @@ export class Search extends React.Component<IProps, IState> {
 
   private suggestionBlurTimer?: number;
   private searchDebounceTimer?: number;
+  private scrollRaf?: number;
+  private resultsTopRef = React.createRef<HTMLDivElement>();
 
   public componentWillUnmount(): void {
     if (this.suggestionBlurTimer !== undefined) {
@@ -87,6 +92,9 @@ export class Search extends React.Component<IProps, IState> {
     }
     if (this.searchDebounceTimer !== undefined) {
       window.clearTimeout(this.searchDebounceTimer);
+    }
+    if (this.scrollRaf !== undefined) {
+      window.cancelAnimationFrame(this.scrollRaf);
     }
   }
 
@@ -236,12 +244,69 @@ export class Search extends React.Component<IProps, IState> {
         this.state.nameQuery,
         !this.props.isAdmin
       );
-      this.setState({ results, searching: false, searched: true });
+      this.setState({ results, searching: false, searched: true, currentPage: 1 });
     } catch (e) {
-      this.setState({ searching: false, searched: true, results: [] });
+      this.setState({ searching: false, searched: true, results: [], currentPage: 1 });
       // eslint-disable-next-line no-console
       console.error(e);
     }
+  };
+
+  private goToPage = (page: number): void => {
+    this.setState({ currentPage: page }, () => {
+      window.requestAnimationFrame(() => this.scrollPageToTop());
+    });
+  };
+
+  private findScrollContainer = (): HTMLElement | null => {
+    let node: HTMLElement | null = this.resultsTopRef.current;
+    while (node) {
+      const overflowY = window.getComputedStyle(node).overflowY;
+      if ((overflowY === 'auto' || overflowY === 'scroll') && node.scrollHeight > node.clientHeight) {
+        return node;
+      }
+      node = node.parentElement;
+    }
+    return null;
+  };
+
+  private getScrollTop = (target: HTMLElement | null): number => {
+    if (target) return target.scrollTop;
+    return window.scrollY || window.pageYOffset || document.documentElement.scrollTop || 0;
+  };
+
+  private setScrollTop = (target: HTMLElement | null, y: number): void => {
+    if (target) {
+      target.scrollTop = y;
+    } else {
+      window.scrollTo(0, y);
+    }
+  };
+
+  private scrollPageToTop = (): void => {
+    const target = this.findScrollContainer();
+    const start = this.getScrollTop(target);
+    if (start <= 0) return;
+    if (this.scrollRaf !== undefined) {
+      window.cancelAnimationFrame(this.scrollRaf);
+    }
+    const duration = 350;
+    const startTime = performance.now();
+    const easeInOutQuad = (t: number): number =>
+      t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+
+    const step = (now: number): void => {
+      const elapsed = now - startTime;
+      const t = Math.min(1, elapsed / duration);
+      const y = start * (1 - easeInOutQuad(t));
+      this.setScrollTop(target, y);
+      if (t < 1) {
+        this.scrollRaf = window.requestAnimationFrame(step);
+      } else {
+        this.scrollRaf = undefined;
+      }
+    };
+    this.scrollRaf = window.requestAnimationFrame(step);
   };
 
   public componentDidMount(): void {
@@ -296,15 +361,57 @@ export class Search extends React.Component<IProps, IState> {
     }
   };
 
+  private getPageNumbers(current: number, total: number): Array<number | '...'> {
+    if (total <= 7) {
+      const all: number[] = [];
+      for (let i = 1; i <= total; i++) all.push(i);
+      return all;
+    }
+    const pages: Array<number | '...'> = [1];
+    const start = Math.max(2, current - 1);
+    const end = Math.min(total - 1, current + 1);
+    if (start > 2) pages.push('...');
+    for (let i = start; i <= end; i++) pages.push(i);
+    if (end < total - 1) pages.push('...');
+    pages.push(total);
+    return pages;
+  }
+
+  private renderPageButtons(current: number, total: number): React.ReactNode {
+    return this.getPageNumbers(current, total).map((p, idx) => {
+      if (p === '...') {
+        return <span key={`gap-${idx}`} className={styles.pageEllipsis}>…</span>;
+      }
+      const isActive = p === current;
+      return (
+        <button
+          key={p}
+          type="button"
+          className={`${styles.pageBtn} ${isActive ? styles.pageBtnActive : ''}`}
+          onClick={() => this.goToPage(p)}
+          disabled={isActive}
+          aria-current={isActive ? 'page' : undefined}
+        >
+          {p}
+        </button>
+      );
+    });
+  }
+
   public render(): React.ReactElement {
     const {
       selectedTagIds, mode, nameQuery, filter, searching, results, searched,
-      showSuggestions, highlightedSuggestion,
+      showSuggestions, highlightedSuggestion, currentPage,
       editingDoc, editingTagIds, editFilter, savingEdit, editError,
       deletingDoc, deleting, deleteError,
       renamingDoc, renameValue, renaming, renameError
     } = this.state;
     const suggestions = this.getSuggestions();
+    const totalPages = Math.max(1, Math.ceil(results.length / PAGE_SIZE));
+    const safePage = Math.min(currentPage, totalPages);
+    const pageStart = (safePage - 1) * PAGE_SIZE;
+    const pageEnd = pageStart + PAGE_SIZE;
+    const pagedResults = results.slice(pageStart, pageEnd);
     const matchTag = (t: IHashtag, q: string): boolean => {
       if (!q) return true;
       const needle = q.toLowerCase();
@@ -424,8 +531,8 @@ export class Search extends React.Component<IProps, IState> {
         )}
 
         {!searching && results.length > 0 && (
-          <div className={styles.docList}>
-            {results.map(d => (
+          <div className={styles.docList} ref={this.resultsTopRef}>
+            {pagedResults.map(d => (
               <div key={d.Id} className={styles.docRow}>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div className={styles.docTitle}>
@@ -500,6 +607,31 @@ export class Search extends React.Component<IProps, IState> {
               </div>
             ))}
           </div>
+        )}
+
+        {!searching && results.length > PAGE_SIZE && (
+          <Stack horizontalAlign="center" tokens={{ childrenGap: 6 }} className={styles.pagination}>
+            <Stack horizontal verticalAlign="center" tokens={{ childrenGap: 4 }}>
+              <IconButton
+                iconProps={{ iconName: 'ChevronLeft' }}
+                title="Trang trước"
+                ariaLabel="Trang trước"
+                disabled={safePage <= 1}
+                onClick={() => this.goToPage(safePage - 1)}
+              />
+              {this.renderPageButtons(safePage, totalPages)}
+              <IconButton
+                iconProps={{ iconName: 'ChevronRight' }}
+                title="Trang sau"
+                ariaLabel="Trang sau"
+                disabled={safePage >= totalPages}
+                onClick={() => this.goToPage(safePage + 1)}
+              />
+            </Stack>
+            <span className={styles.muted}>
+              Hiển thị {pageStart + 1}–{Math.min(pageEnd, results.length)} / {results.length}
+            </span>
+          </Stack>
         )}
 
         <Dialog
