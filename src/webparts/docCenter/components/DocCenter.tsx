@@ -83,22 +83,22 @@ export class DocCenter extends React.Component<IDocCenterProps, IState> {
           </div>
 
           <Pivot styles={{ root: { marginTop: 16, marginBottom: 8 } }}>
-            <PivotItem headerText="Tải lên" itemIcon="Upload">
-              <Upload
-                libraryTitle={this.props.documentsLibraryTitle}
-                hashtags={hashtags}
-                onHashtagsChanged={this.reloadHashtags}
-                hashtagsListTitle={this.props.hashtagsListTitle}
-                isAdmin={isAdmin}
-              />
-            </PivotItem>
-
             <PivotItem headerText="Tìm kiếm" itemIcon="Search">
               <Search
                 libraryTitle={this.props.documentsLibraryTitle}
                 hashtagsListTitle={this.props.hashtagsListTitle}
                 hashtags={hashtags}
                 siteUrl={this.props.siteUrl}
+                isAdmin={isAdmin}
+              />
+            </PivotItem>
+
+            <PivotItem headerText="Tải lên" itemIcon="Upload">
+              <Upload
+                libraryTitle={this.props.documentsLibraryTitle}
+                hashtags={hashtags}
+                onHashtagsChanged={this.reloadHashtags}
+                hashtagsListTitle={this.props.hashtagsListTitle}
                 isAdmin={isAdmin}
               />
             </PivotItem>
