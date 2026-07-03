@@ -1,32 +1,32 @@
 import { createTheme, ITheme } from '@fluentui/react';
 
-// DuyTan green minimal palette (brand accent #119503).
-export const claudeTheme: ITheme = createTheme({
+// Palette xanh lá theo design "Trung tâm Tài liệu" (accent #00913f).
+export const docCenterTheme: ITheme = createTheme({
   defaultFontStyle: {
-    fontFamily: '"Inter", "Segoe UI", -apple-system, BlinkMacSystemFont, Arial, sans-serif'
+    fontFamily: '"Be Vietnam Pro", "Segoe UI", system-ui, -apple-system, sans-serif'
   },
   palette: {
-    themePrimary: '#119503',
-    themeLighterAlt: '#F3FBF1',
-    themeLighter: '#D4F1CB',
-    themeLight: '#AAE498',
-    themeTertiary: '#5BC841',
-    themeSecondary: '#25A813',
-    themeDarkAlt: '#108503',
-    themeDark: '#0B6A02',
-    themeDarker: '#084F02',
-    neutralLighterAlt: '#F7F9F5',
-    neutralLighter: '#F0F5EC',
-    neutralLight: '#E5ECDF',
-    neutralQuaternaryAlt: '#D4DBCE',
-    neutralQuaternary: '#C8D2C3',
-    neutralTertiaryAlt: '#AEB7AA',
-    neutralTertiary: '#838B7E',
-    neutralSecondary: '#5F6B58',
-    neutralPrimaryAlt: '#2D3329',
-    neutralPrimary: '#1A1A19',
-    neutralDark: '#0F0F0E',
+    themePrimary: '#00913f',
+    themeLighterAlt: '#f2faf5',
+    themeLighter: '#e4f4e9',
+    themeLight: '#bfe4cc',
+    themeTertiary: '#5cbf85',
+    themeSecondary: '#17a052',
+    themeDarkAlt: '#00813a',
+    themeDark: '#006e31',
+    themeDarker: '#005124',
+    neutralLighterAlt: '#f5f7f6',
+    neutralLighter: '#f5f7f2',
+    neutralLight: '#e3e7de',
+    neutralQuaternaryAlt: '#dde3d7',
+    neutralQuaternary: '#c8d5c3',
+    neutralTertiaryAlt: '#a5b0a7',
+    neutralTertiary: '#94a096',
+    neutralSecondary: '#68766c',
+    neutralPrimaryAlt: '#2c3a30',
+    neutralPrimary: '#14261b',
+    neutralDark: '#0e1a13',
     black: '#000000',
-    white: '#FFFFFF'
+    white: '#ffffff'
   }
 });

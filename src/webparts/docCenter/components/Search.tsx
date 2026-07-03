@@ -1,18 +1,13 @@
 import * as React from 'react';
 import {
-  Stack, TextField, ChoiceGroup, IChoiceGroupOption,
-  DefaultButton, PrimaryButton, IconButton, MessageBar, MessageBarType,
-  Spinner, SpinnerSize, Link, Icon, Dialog, DialogType, DialogFooter,
-  TooltipHost, DirectionalHint, ITooltipHostStyles
+  Stack, TextField, DefaultButton, PrimaryButton, IconButton,
+  MessageBar, MessageBarType, Spinner, SpinnerSize,
+  Dialog, DialogType, DialogFooter
 } from '@fluentui/react';
-import {
-  initializeFileTypeIcons, getFileTypeIconProps
-} from '@fluentui/react-file-type-icons';
 import { IHashtag, IDocument, SearchMode, groupHashtagsByCategory } from '../services/types';
 import { SharePointService } from '../services/SharePointService';
+import { CatChip, ExtBadge, GroupLabel, Segmented } from './ui';
 import styles from './DocCenter.module.scss';
-
-initializeFileTypeIcons();
 
 interface IProps {
   libraryTitle: string;
@@ -26,7 +21,6 @@ interface IState {
   selectedTagIds: number[];
   mode: SearchMode;
   nameQuery: string;
-  filter: string;
   searching: boolean;
   results: IDocument[];
   searched: boolean;
@@ -53,12 +47,10 @@ const PAGE_SIZE = 10;
 
 const EDIT_WINDOW_MS = 24 * 60 * 60 * 1000;
 
-const MODE_OPTIONS: IChoiceGroupOption[] = [
-  { key: 'all', text: 'Tất cả (VÀ)' },
-  { key: 'any', text: 'Bất kỳ (HOẶC)' }
+const MODE_OPTIONS = [
+  { key: 'all', label: 'Tất cả (VÀ)' },
+  { key: 'any', label: 'Bất kỳ (HOẶC)' }
 ];
-
-const TOOLTIP_HOST_STYLES: Partial<ITooltipHostStyles> = { root: { display: 'inline-block' } };
 
 export class Search extends React.Component<IProps, IState> {
 
@@ -66,7 +58,6 @@ export class Search extends React.Component<IProps, IState> {
     selectedTagIds: [],
     mode: 'all',
     nameQuery: '',
-    filter: '',
     searching: false,
     results: [],
     searched: false,
@@ -129,7 +120,7 @@ export class Search extends React.Component<IProps, IState> {
     this.setState({ showSuggestions: false, highlightedSuggestion: -1 });
   };
 
-  private onSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>): void => {
+  private onSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>): void => {
     if (!this.state.showSuggestions) return;
     const suggestions = this.getSuggestions();
     if (suggestions.length === 0) return;
@@ -240,7 +231,8 @@ export class Search extends React.Component<IProps, IState> {
     this.setState({ selectedTagIds: Array.from(set) }, () => void this.runSearch());
   };
 
-  private clearTags = (): void => this.setState({ selectedTagIds: [] }, () => void this.runSearch());
+  private clearFilters = (): void =>
+    this.setState({ selectedTagIds: [], nameQuery: '' }, () => void this.runSearch());
 
   private runSearch = async (): Promise<void> => {
     this.setState({ searching: true });
@@ -321,16 +313,19 @@ export class Search extends React.Component<IProps, IState> {
     void this.runSearch();
   }
 
-  private getExtension(name: string): string {
-    const dot = name.lastIndexOf('.');
-    return dot >= 0 ? name.substring(dot + 1).toLowerCase() : '';
-  }
-
   private buildAbsoluteUrl(serverRelativeUrl: string): string {
     const origin = this.props.siteUrl.replace(/^(https?:\/\/[^/]+).*$/, '$1');
     const absolute = serverRelativeUrl.startsWith('/') ? `${origin}${serverRelativeUrl}` : serverRelativeUrl;
     return absolute + (absolute.indexOf('?') === -1 ? '?web=1' : '&web=1');
   }
+
+  private buildDownloadUrl(serverRelativeUrl: string): string {
+    return `${this.props.siteUrl}/_layouts/15/download.aspx?SourceUrl=${encodeURIComponent(serverRelativeUrl)}`;
+  }
+
+  private downloadDocument = (d: IDocument): void => {
+    window.open(this.buildDownloadUrl(d.ServerRelativeUrl), '_blank', 'noopener,noreferrer');
+  };
 
   private openEdit = (doc: IDocument): void => {
     this.setState({
@@ -406,9 +401,76 @@ export class Search extends React.Component<IProps, IState> {
     });
   }
 
+  private getFilterSummary(): string {
+    const { selectedTagIds, mode } = this.state;
+    if (selectedTagIds.length === 0) {
+      return `tất cả tài liệu trong ${this.props.libraryTitle}`;
+    }
+    const names = selectedTagIds
+      .map(id => this.props.hashtags.filter(t => t.Id === id)[0])
+      .filter(t => !!t)
+      .map(t => `#${t.Title}`);
+    return `khớp ${names.join(mode === 'all' ? ' VÀ ' : ' HOẶC ')}`;
+  }
+
+  private renderRowActions(d: IDocument): React.ReactNode {
+    const canRename = this.props.isAdmin || this.isWithinEditWindow(d);
+    const canEditTags = !this.props.isAdmin && this.isWithinEditWindow(d);
+    return (
+      <span className={styles.rowActions}>
+        <button
+          type="button"
+          className={styles.sqBtn}
+          title="Mở"
+          onClick={e => this.openDocument(e, d)}
+        >
+          ↗
+        </button>
+        <button
+          type="button"
+          className={styles.sqBtn}
+          title="Tải về"
+          onClick={() => this.downloadDocument(d)}
+        >
+          ↓
+        </button>
+        {canRename && (
+          <button
+            type="button"
+            className={styles.sqBtn}
+            title="Đổi tên tài liệu"
+            onClick={() => this.openRename(d)}
+          >
+            ✎
+          </button>
+        )}
+        {canEditTags && (
+          <button
+            type="button"
+            className={styles.sqBtn}
+            title="Sửa hashtag"
+            onClick={() => this.openEdit(d)}
+          >
+            #
+          </button>
+        )}
+        {d.CanDelete && (
+          <button
+            type="button"
+            className={`${styles.sqBtn} ${styles.sqBtnDanger}`}
+            title="Xoá tài liệu"
+            onClick={() => this.openDelete(d)}
+          >
+            ✕
+          </button>
+        )}
+      </span>
+    );
+  }
+
   public render(): React.ReactElement {
     const {
-      selectedTagIds, mode, nameQuery, filter, searching, results, searched,
+      selectedTagIds, mode, nameQuery, searching, results, searched,
       showSuggestions, highlightedSuggestion, currentPage,
       editingDoc, editingTagIds, editFilter, savingEdit, editError,
       deletingDoc, deleting, deleteError,
@@ -420,106 +482,79 @@ export class Search extends React.Component<IProps, IState> {
     const pageStart = (safePage - 1) * PAGE_SIZE;
     const pageEnd = pageStart + PAGE_SIZE;
     const pagedResults = results.slice(pageStart, pageEnd);
+    const hasFilters = selectedTagIds.length > 0 || !!nameQuery.trim();
     const matchTag = (t: IHashtag, q: string): boolean => {
       if (!q) return true;
       const needle = q.toLowerCase();
       return t.Title.toLowerCase().includes(needle)
         || (t.Description || '').toLowerCase().includes(needle);
     };
-    const filteredTags = this.props.hashtags.filter(t => matchTag(t, filter));
     const filteredEditTags = this.props.hashtags.filter(t => matchTag(t, editFilter));
 
     return (
-      <Stack tokens={{ childrenGap: 16 }} className={styles.section}>
-        <div className={styles.card}>
-          <Stack horizontal tokens={{ childrenGap: 16 }} verticalAlign="start">
-            <Stack.Item grow>
-              <div className={styles.searchAutocomplete}>
-                <TextField
-                  label="Tìm theo tên file hoặc hashtag"
-                  placeholder="Nhập một phần tên file hoặc hashtag..."
-                  iconProps={{ iconName: 'Search' }}
+      <div className={styles.section}>
+        <div className={styles.card} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div style={{ display: 'flex', gap: 12 }}>
+            <div className={styles.searchAutocomplete}>
+              <div className={styles.searchBox}>
+                <span className={styles.searchIcon}>⌕</span>
+                <input
                   value={nameQuery}
                   autoComplete="off"
-                  onChange={(_, v) => this.setState(
-                    { nameQuery: v || '', showSuggestions: true, highlightedSuggestion: -1 },
+                  placeholder="Nhập một phần tên file hoặc hashtag…"
+                  onChange={e => this.setState(
+                    { nameQuery: e.target.value, showSuggestions: true, highlightedSuggestion: -1 },
                     this.scheduleSearch
                   )}
                   onFocus={this.onSearchFocus}
                   onBlur={this.onSearchBlur}
                   onKeyDown={this.onSearchKeyDown}
                 />
-                {showSuggestions && suggestions.length > 0 && (
-                  <div className={styles.suggestBox} role="listbox">
-                    {suggestions.map((d, idx) => (
-                      <div
-                        key={d.Id}
-                        role="option"
-                        aria-selected={idx === highlightedSuggestion}
-                        className={`${styles.suggestItem} ${idx === highlightedSuggestion ? styles.suggestItemActive : ''}`}
-                        onMouseDown={e => { e.preventDefault(); this.openSuggestion(d); }}
-                        onMouseEnter={() => this.setState({ highlightedSuggestion: idx })}
-                      >
-                        <Icon {...getFileTypeIconProps({ extension: this.getExtension(d.Name), size: 16 })} />
-                        <span className={styles.suggestName}>{d.Name}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
               </div>
-            </Stack.Item>
-            <Stack.Item>
-              <ChoiceGroup
-                label="Kiểu khớp"
-                selectedKey={mode}
-                options={MODE_OPTIONS}
-                onChange={(_, opt) => opt && this.setState({ mode: opt.key as SearchMode }, () => void this.runSearch())}
-              />
-            </Stack.Item>
-          </Stack>
-
-          <div style={{ marginTop: 16 }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-              <span className={styles.sectionLabel}>Hashtag</span>
-              {selectedTagIds.length > 0 && (
-                <span className={styles.clearLink} onClick={this.clearTags}>
-                  Bỏ chọn {selectedTagIds.length}
-                </span>
+              {showSuggestions && suggestions.length > 0 && (
+                <div className={styles.suggestBox} role="listbox">
+                  {suggestions.map((d, idx) => (
+                    <div
+                      key={d.Id}
+                      role="option"
+                      aria-selected={idx === highlightedSuggestion}
+                      className={`${styles.suggestItem} ${idx === highlightedSuggestion ? styles.suggestItemActive : ''}`}
+                      onMouseDown={e => { e.preventDefault(); this.openSuggestion(d); }}
+                      onMouseEnter={() => this.setState({ highlightedSuggestion: idx })}
+                    >
+                      <ExtBadge fileName={d.Name} size={24} />
+                      <span className={styles.suggestName}>{d.Name}</span>
+                    </div>
+                  ))}
+                </div>
               )}
             </div>
-            <TextField
-              placeholder="Lọc hashtag..."
-              iconProps={{ iconName: 'Filter' }}
-              value={filter}
-              onChange={(_, v) => this.setState({ filter: v || '' })}
+            <Segmented
+              options={MODE_OPTIONS}
+              value={mode}
+              onChange={key => this.setState({ mode: key as SearchMode }, () => void this.runSearch())}
             />
-            {filteredTags.length === 0 && <div className={styles.tagWrap}><span className={styles.muted}>Không tìm thấy hashtag.</span></div>}
-            {groupHashtagsByCategory(filteredTags).map(g => (
-              <div key={g.name} style={{ marginTop: 6 }}>
-                <div className={styles.muted} style={{ fontWeight: 600, marginBottom: 4 }}>{g.name}</div>
-                <div className={styles.tagWrap} style={{ marginTop: 0 }}>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {this.props.hashtags.length === 0 && (
+              <span className={styles.muted}>Chưa có hashtag nào.</span>
+            )}
+            {groupHashtagsByCategory(this.props.hashtags).map(g => (
+              <div key={g.name} className={styles.groupRow}>
+                <GroupLabel name={g.name} />
+                <div className={styles.tagWrap}>
                   {g.items.map(t => {
                     const selected = selectedTagIds.indexOf(t.Id) !== -1;
-                    const pill = (
-                      <span
-                        className={`${styles.tagPill} ${styles.tagPillBig} ${selected ? styles.tagPillSelected : ''}`}
+                    return (
+                      <CatChip
+                        key={t.Id}
+                        tag={t}
+                        selected={selected}
+                        showRemove={selected}
                         onClick={() => this.toggleTag(t.Id)}
-                      >
-                        #{t.Title}
-                      </span>
+                      />
                     );
-                    return t.Description
-                      ? (
-                        <TooltipHost
-                          key={t.Id}
-                          content={t.Description}
-                          directionalHint={DirectionalHint.topCenter}
-                          styles={TOOLTIP_HOST_STYLES}
-                        >
-                          {pill}
-                        </TooltipHost>
-                      )
-                      : <React.Fragment key={t.Id}>{pill}</React.Fragment>;
                   })}
                 </div>
               </div>
@@ -527,25 +562,43 @@ export class Search extends React.Component<IProps, IState> {
           </div>
         </div>
 
-        <Stack horizontal tokens={{ childrenGap: 8 }} verticalAlign="center">
-          <DefaultButton text="Làm mới" iconProps={{ iconName: 'Refresh' }} onClick={this.runSearch} disabled={searching} />
-          {!searching && searched && <span className={styles.countPill}>{results.length} tài liệu</span>}
-        </Stack>
+        <div className={styles.resultBar}>
+          <span className={styles.countPill}>{results.length} tài liệu</span>
+          <span>{this.getFilterSummary()}</span>
+          {hasFilters && (
+            <span className={styles.clearLink} onClick={this.clearFilters}>
+              Xoá bộ lọc
+            </span>
+          )}
+          <span style={{ marginLeft: 'auto' }}>
+            <button
+              type="button"
+              className={styles.sqBtn}
+              title="Làm mới"
+              onClick={() => void this.runSearch()}
+              disabled={searching}
+            >
+              ⟳
+            </button>
+          </span>
+        </div>
 
         {searching && <Spinner size={SpinnerSize.medium} label="Đang tìm..." />}
 
         {!searching && searched && results.length === 0 && (
-          <MessageBar messageBarType={MessageBarType.info}>Không có tài liệu nào phù hợp.</MessageBar>
+          <div className={styles.emptyBox}>
+            Không có tài liệu nào khớp bộ lọc — thử bỏ bớt hashtag hoặc đổi sang <b>Bất kỳ (HOẶC)</b>.
+          </div>
         )}
 
         {!searching && results.length > 0 && (
           <div className={styles.docList} ref={this.resultsTopRef}>
             {pagedResults.map(d => (
               <div key={d.Id} className={styles.docRow}>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div className={styles.docTitle}>
-                    <Icon {...getFileTypeIconProps({ extension: this.getExtension(d.Name), size: 20 })} />
-                    <Link
+                <ExtBadge fileName={d.Name} />
+                <span style={{ flex: 1, minWidth: 0 }}>
+                  <span className={styles.docTitle}>
+                    <a
                       href={this.buildAbsoluteUrl(d.ServerRelativeUrl)}
                       target="_blank"
                       rel="noopener noreferrer"
@@ -553,71 +606,25 @@ export class Search extends React.Component<IProps, IState> {
                       onClick={e => this.openDocument(e, d)}
                     >
                       {d.Name}
-                    </Link>
-                  </div>
-                  <div className={styles.docMeta}>
+                    </a>
+                  </span>
+                  <span className={styles.docMeta}>
                     {d.SizeKB ? `${d.SizeKB} KB · ` : ''}
                     {new Date(d.Modified).toLocaleString()}{d.CreatedBy ? ` · ${d.CreatedBy}` : ''}
-                  </div>
-                  <div className={styles.tagWrap}>
-                    {d.Hashtags.length === 0 && <span className={styles.muted}>Không có hashtag</span>}
-                    {d.Hashtags.map(t => {
-                      const active = selectedTagIds.indexOf(t.Id) !== -1;
-                      return (
-                        <span
-                          key={t.Id}
-                          className={`${styles.tagPill} ${active ? styles.tagPillSelected : ''}`}
-                          title={active ? 'Nhấn để bỏ khỏi bộ lọc' : 'Nhấn để thêm vào bộ lọc'}
-                          onClick={() => this.toggleTag(t.Id)}
-                        >
-                          #{t.Title}
-                        </span>
-                      );
-                    })}
-                  </div>
-                </div>
-                {this.props.isAdmin && (
-                  <Stack horizontal tokens={{ childrenGap: 4 }}>
-                    <IconButton
-                      iconProps={{ iconName: 'Rename' }}
-                      title="Đổi tên tài liệu"
-                      ariaLabel="Đổi tên tài liệu"
-                      onClick={() => this.openRename(d)}
+                  </span>
+                </span>
+                <span className={styles.docChips}>
+                  {d.Hashtags.map(t => (
+                    <CatChip
+                      key={t.Id}
+                      tag={t}
+                      small
+                      selected={selectedTagIds.indexOf(t.Id) !== -1}
+                      onClick={() => this.toggleTag(t.Id)}
                     />
-                    {d.CanDelete && (
-                      <IconButton
-                        iconProps={{ iconName: 'Delete' }}
-                        title="Xoá tài liệu"
-                        ariaLabel="Xoá tài liệu"
-                        onClick={() => this.openDelete(d)}
-                      />
-                    )}
-                  </Stack>
-                )}
-                {!this.props.isAdmin && this.isWithinEditWindow(d) && (
-                  <Stack horizontal tokens={{ childrenGap: 4 }}>
-                    <IconButton
-                      iconProps={{ iconName: 'Rename' }}
-                      title="Đổi tên tài liệu"
-                      ariaLabel="Đổi tên tài liệu"
-                      onClick={() => this.openRename(d)}
-                    />
-                    <IconButton
-                      iconProps={{ iconName: 'Edit' }}
-                      title="Sửa hashtag"
-                      ariaLabel="Sửa hashtag"
-                      onClick={() => this.openEdit(d)}
-                    />
-                    {d.CanDelete && (
-                      <IconButton
-                        iconProps={{ iconName: 'Delete' }}
-                        title="Xoá tài liệu"
-                        ariaLabel="Xoá tài liệu"
-                        onClick={() => this.openDelete(d)}
-                      />
-                    )}
-                  </Stack>
-                )}
+                  ))}
+                </span>
+                {this.renderRowActions(d)}
               </div>
             ))}
           </div>
@@ -670,32 +677,18 @@ export class Search extends React.Component<IProps, IState> {
             <div style={{ maxHeight: 320, overflowY: 'auto' }}>
               {filteredEditTags.length === 0 && <span className={styles.muted}>Không tìm thấy hashtag.</span>}
               {groupHashtagsByCategory(filteredEditTags).map(g => (
-                <div key={g.name} style={{ marginTop: 6 }}>
-                  <div className={styles.muted} style={{ fontWeight: 600, marginBottom: 4 }}>{g.name}</div>
-                  <div className={styles.tagWrap} style={{ marginTop: 0 }}>
-                    {g.items.map(t => {
-                      const selected = editingTagIds.indexOf(t.Id) !== -1;
-                      const pill = (
-                        <span
-                          className={`${styles.tagPill} ${selected ? styles.tagPillSelected : ''}`}
-                          onClick={() => !savingEdit && this.toggleEditTag(t.Id)}
-                        >
-                          #{t.Title}
-                        </span>
-                      );
-                      return t.Description
-                        ? (
-                          <TooltipHost
-                            key={t.Id}
-                            content={t.Description}
-                            directionalHint={DirectionalHint.topCenter}
-                            styles={TOOLTIP_HOST_STYLES}
-                          >
-                            {pill}
-                          </TooltipHost>
-                        )
-                        : <React.Fragment key={t.Id}>{pill}</React.Fragment>;
-                    })}
+                <div key={g.name} className={styles.groupRow} style={{ marginTop: 10 }}>
+                  <GroupLabel name={g.name} />
+                  <div className={styles.tagWrap}>
+                    {g.items.map(t => (
+                      <CatChip
+                        key={t.Id}
+                        tag={t}
+                        small
+                        selected={editingTagIds.indexOf(t.Id) !== -1}
+                        onClick={() => !savingEdit && this.toggleEditTag(t.Id)}
+                      />
+                    ))}
                   </div>
                 </div>
               ))}
@@ -757,7 +750,7 @@ export class Search extends React.Component<IProps, IState> {
             <DefaultButton text="Huỷ" onClick={this.cancelRename} disabled={renaming} />
           </DialogFooter>
         </Dialog>
-      </Stack>
+      </div>
     );
   }
 }

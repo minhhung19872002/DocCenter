@@ -6,6 +6,7 @@ import {
   PropertyPaneTextField
 } from '@microsoft/sp-property-pane';
 import { BaseClientSideWebPart } from '@microsoft/sp-webpart-base';
+import { SPComponentLoader } from '@microsoft/sp-loader';
 
 import * as strings from 'DocCenterWebPartStrings';
 import { DocCenter } from './components/DocCenter';
@@ -24,6 +25,7 @@ export default class DocCenterWebPart extends BaseClientSideWebPart<IDocCenterWe
   protected onInit(): Promise<void> {
     return super.onInit().then(() => {
       document.body.classList.add(DOC_CENTER_APP_BODY_CLASS);
+      SPComponentLoader.loadCss('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap');
       SharePointService.configure(this.context);
     });
   }
@@ -33,6 +35,7 @@ export default class DocCenterWebPart extends BaseClientSideWebPart<IDocCenterWe
       documentsLibraryTitle: this.properties.documentsLibraryTitle || 'Documents',
       hashtagsListTitle: this.properties.hashtagsListTitle || 'Hashtags',
       currentUserLogin: this.context.pageContext.user.loginName,
+      currentUserName: this.context.pageContext.user.displayName,
       siteUrl: this.context.pageContext.web.absoluteUrl
     });
     ReactDom.render(element, this.domElement);

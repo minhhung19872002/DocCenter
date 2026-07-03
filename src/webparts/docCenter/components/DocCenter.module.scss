@@ -1,25 +1,35 @@
-// Design tokens — DuyTan green minimal palette
-$color-bg:            #F7F9F5;
-$color-surface:       #FFFFFF;
-$color-surface-alt:   #F0F5EC;
-$color-border:        #E0E6DC;
-$color-border-strong: #C8D2C3;
-$color-text:          #1A1A19;
-$color-text-muted:    #5F6B58;
-$color-accent:        #119503;
-$color-accent-soft:   #E7F5E1;
-$color-accent-strong: #0B6A02;
+// Design tokens — layout "Trung tâm Tài liệu" (claude design)
+$color-bg:            #f5f7f6;
+$color-surface:       #ffffff;
+$color-surface-alt:   #f5f7f2;
+$color-border:        #e3e7de;
+$color-border-strong: #c8d5c3;
+$color-input-border:  #dde3d7;
+$color-text:          #14261b;
+$color-text-muted:    #68766c;
+$color-text-faint:    #94a096;
+$color-accent:        #00913f;
+$color-accent-dark:   #00813a;
+$color-accent-soft:   #e4f4e9;
+$color-accent-mist:   #eef6ef;
+$color-header:        #0078D4;
+$color-danger:        #b3352c;
+$color-danger-border: #f0d9d7;
 
-$radius-pill:   100px;
-$radius-card:   12px;
-$radius-input:  8px;
+$radius-card:  16px;
+$radius-row:   14px;
+$radius-input: 12px;
+$radius-btn:   9px;
 
-$shadow-soft: 0 1px 2px rgba(20, 18, 14, 0.04), 0 4px 12px rgba(20, 18, 14, 0.04);
-$shadow-hover: 0 1px 2px rgba(20, 18, 14, 0.06), 0 8px 20px rgba(20, 18, 14, 0.06);
+$shadow-card:      0 1px 3px rgba(22, 53, 31, 0.05);
+$shadow-row-hover: 0 4px 14px rgba(22, 53, 31, 0.08);
+
+$font-stack: "Be Vietnam Pro", "Segoe UI", system-ui, -apple-system, sans-serif;
 
 :global {
   body.doc-center-app-page {
     overflow: auto;
+    background: #f5f7f6;
   }
 
   body.doc-center-app-page #SuiteNavWrapper,
@@ -56,123 +66,229 @@ $shadow-hover: 0 1px 2px rgba(20, 18, 14, 0.06), 0 8px 20px rgba(20, 18, 14, 0.0
 }
 
 .docCenter {
-  font-family: "Inter", "Segoe UI", -apple-system, BlinkMacSystemFont, Arial, sans-serif;
+  font-family: $font-stack;
   color: $color-text;
   background: $color-bg;
-  padding: 24px 28px 32px;
-  border-radius: $radius-card;
-  border: 1px solid $color-border;
-  letter-spacing: -0.005em;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+
+  input,
+  button {
+    font-family: $font-stack;
+  }
+
+  input::placeholder {
+    color: #98a49b;
+  }
 
   :global {
-    .ms-Pivot-link {
-      font-weight: 500;
-    }
-    .ms-Pivot-link.is-selected::before {
-      background: $color-accent;
-    }
     .ms-TextField-fieldGroup {
-      border-radius: $radius-input;
+      border-radius: 10px;
     }
     .ms-Button--primary {
-      border-radius: $radius-input;
+      border-radius: $radius-btn;
     }
     .ms-Button--default {
-      border-radius: $radius-input;
+      border-radius: $radius-btn;
     }
   }
 }
 
-.header {
+// ===== Header =====
+.headerBand {
+  background: $color-header;
+}
+
+.headerInner {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px 28px 0;
+  box-sizing: border-box;
+}
+
+.brandRow {
   display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 16px;
-  padding-bottom: 18px;
-  margin-bottom: 4px;
-  border-bottom: 1px solid $color-border;
-}
-
-.headerLeft {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.title {
-  font-size: 26px;
-  line-height: 1.15;
-  font-weight: 600;
-  letter-spacing: -0.02em;
-  color: $color-text;
-}
-
-.subtitle {
-  font-size: 13px;
-  color: $color-text-muted;
-  line-height: 1.4;
-}
-
-.headerRight {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 6px;
-}
-
-.metaChip {
-  display: inline-flex;
   align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  color: $color-text-muted;
+  gap: 14px;
+}
+
+.logoBox {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
   background: $color-surface;
-  border: 1px solid $color-border;
-  border-radius: $radius-pill;
-  padding: 4px 10px;
+  color: $color-header;
+  display: grid;
+  place-items: center;
+  font-size: 19px;
+  font-weight: 800;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+  flex: none;
+}
+
+.brandTitle {
+  font-size: 19px;
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: -0.2px;
+}
+
+.brandSub {
+  font-size: 12px;
+  color: #d8eafb;
+  margin-top: 1px;
+}
+
+.brandRight {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .adminBadge {
-  display: inline-flex;
+  display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  border-radius: 20px;
+  padding: 4px 12px;
+  letter-spacing: 0.6px;
   text-transform: uppercase;
-  color: $color-accent-strong;
-  background: $color-accent-soft;
-  border: 1px solid lighten($color-accent, 25%);
-  border-radius: $radius-pill;
-  padding: 3px 10px;
+
+  &::before {
+    content: "";
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #4ade80;
+  }
+}
+
+.libChip {
+  font-size: 11.5px;
+  color: #d8eafb;
+  background: rgba(255, 255, 255, 0.07);
+  border-radius: 8px;
+  padding: 6px 12px;
+
+  b {
+    color: #ffffff;
+  }
+}
+
+.avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #e8a33d;
+  display: grid;
+  place-items: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: #3b2a00;
+  flex: none;
+}
+
+// ===== Tabs (dạng folder, dính đáy header) =====
+.tabStrip {
+  display: flex;
+  gap: 6px;
+  margin-top: 18px;
+}
+
+.tab {
+  padding: 10px 22px;
+  border-radius: 10px 10px 0 0;
+  font-size: 13.5px;
+  cursor: pointer;
+  user-select: none;
+  font-weight: 600;
+  background: transparent;
+  color: #e2f0fd;
+}
+
+.tabActive {
+  font-weight: 700;
+  background: $color-bg;
+  color: $color-accent-dark;
+}
+
+// ===== Nội dung =====
+.content {
+  max-width: 1200px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 24px 28px 48px;
+  box-sizing: border-box;
 }
 
 .section {
-  margin-top: 18px;
   display: flex;
   flex-direction: column;
   gap: 16px;
-}
-
-.sectionLabel {
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: $color-text-muted;
-  margin: 0;
 }
 
 .card {
   background: $color-surface;
   border: 1px solid $color-border;
   border-radius: $radius-card;
-  padding: 18px 20px;
+  padding: 20px 22px;
+  box-shadow: $shadow-card;
 }
 
-// Search autocomplete --------------------------------------------------------
+// ===== Ô tìm kiếm =====
 .searchAutocomplete {
   position: relative;
+  flex: 1;
+}
+
+.searchBox {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 48px;
+  background: $color-surface-alt;
+  border: 1.5px solid $color-input-border;
+  border-radius: $radius-input;
+  padding: 0 16px;
+  box-sizing: border-box;
+
+  &:focus-within {
+    border-color: $color-accent;
+  }
+
+  input {
+    flex: 1;
+    border: none;
+    outline: none;
+    background: transparent;
+    font-size: 14px;
+    color: $color-text;
+    min-width: 0;
+  }
+}
+
+.searchIcon {
+  color: #8b968d;
+  font-size: 16px;
+  flex: none;
+}
+
+.searchBoxSmall {
+  height: 40px;
+  background: $color-surface;
+  border-width: 1px;
+  border-radius: 10px;
+  padding: 0 12px;
+
+  input {
+    font-size: 12.5px;
+  }
 }
 
 .suggestBox {
@@ -184,7 +300,7 @@ $shadow-hover: 0 1px 2px rgba(20, 18, 14, 0.06), 0 8px 20px rgba(20, 18, 14, 0.0
   background: $color-surface;
   border: 1px solid $color-border;
   border-radius: $radius-input;
-  box-shadow: $shadow-hover;
+  box-shadow: $shadow-row-hover;
   z-index: 100;
   max-height: 320px;
   overflow-y: auto;
@@ -205,7 +321,7 @@ $shadow-hover: 0 1px 2px rgba(20, 18, 14, 0.06), 0 8px 20px rgba(20, 18, 14, 0.0
 
 .suggestItemActive {
   background: $color-accent-soft;
-  color: $color-accent-strong;
+  color: $color-accent-dark;
 }
 
 .suggestName {
@@ -216,235 +332,696 @@ $shadow-hover: 0 1px 2px rgba(20, 18, 14, 0.06), 0 8px 20px rgba(20, 18, 14, 0.0
   text-overflow: ellipsis;
 }
 
-// Tag pills ------------------------------------------------------------------
+// ===== Segmented control =====
+.segWrap {
+  display: flex;
+  background: #eef1ea;
+  border-radius: $radius-input;
+  padding: 4px;
+  gap: 2px;
+  flex: none;
+}
+
+.segBtn {
+  padding: 9px 16px;
+  border-radius: $radius-btn;
+  font-size: 12.5px;
+  cursor: pointer;
+  user-select: none;
+  font-weight: 600;
+  color: $color-text-muted;
+  white-space: nowrap;
+}
+
+.segBtnActive {
+  font-weight: 700;
+  background: $color-accent;
+  color: #ffffff;
+}
+
+.segWrapAdmin {
+  display: flex;
+  gap: 4px;
+  background: #e7ebe2;
+  border-radius: 11px;
+  padding: 4px;
+  width: fit-content;
+}
+
+.segBtnActiveAdmin {
+  font-weight: 700;
+  background: $color-surface;
+  color: $color-accent;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.07);
+}
+
+// ===== Nhóm hashtag =====
+.groupRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.groupLabel {
+  width: 96px;
+  flex: none;
+  margin-top: 6px;
+  font-size: 10.5px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+}
+
 .tagWrap {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 4px;
+  gap: 7px;
+  flex: 1;
 }
 
-.tagPill {
-  display: inline-flex;
-  align-items: center;
-  padding: 5px 12px;
-  border-radius: $radius-pill;
-  background: $color-surface;
-  color: $color-text;
-  cursor: pointer;
-  font-size: 13px;
-  line-height: 1.2;
-  border: 1px solid $color-border;
-  user-select: none;
-  transition: all 120ms ease;
-
-  &:hover {
-    border-color: $color-accent;
-    color: $color-accent-strong;
-    background: $color-accent-soft;
-  }
-}
-
-.tagPillSelected {
-  background: $color-accent;
-  color: #ffffff;
-  border-color: $color-accent;
-
-  &:hover {
-    background: $color-accent-strong;
-    color: #ffffff;
-    border-color: $color-accent-strong;
-  }
-}
-
-.tagPillReadonly {
-  cursor: default;
-  background: $color-surface-alt;
-  color: $color-text-muted;
-  border-color: $color-border;
-
-  &:hover {
-    border-color: $color-border;
-    color: $color-text-muted;
-    background: $color-surface-alt;
-  }
-}
-
-.tagPillBig {
-  font-size: 13.5px;
-  padding: 7px 14px;
-}
-
-// Drop zone ------------------------------------------------------------------
-.dropZone {
-  border: 1.5px dashed $color-border-strong;
-  border-radius: $radius-card;
-  padding: 36px 24px;
-  text-align: center;
-  background: $color-surface;
-  transition: all 160ms ease;
-
-  .dropZoneIcon {
-    color: $color-text-muted;
-    transition: color 160ms ease;
-  }
-}
-
-.dropZoneActive {
-  background: $color-accent-soft;
-  border-color: $color-accent;
-
-  .dropZoneIcon {
-    color: $color-accent;
-  }
-}
-
-.dropZoneHint {
-  color: $color-text-muted;
-  font-size: 13px;
-  margin: 10px 0 14px;
-}
-
-// File chip (staged uploads) -------------------------------------------------
-.fileChip {
+// ===== Thanh kết quả =====
+.resultBar {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 10px 14px;
-  background: $color-surface;
-  border: 1px solid $color-border;
-  border-radius: $radius-input;
-}
-
-.fileChipName {
-  display: inline-flex;
-  align-items: center;
   gap: 10px;
-  font-size: 14px;
-  min-width: 0;
-  flex: 1;
-  word-break: break-all;
+  font-size: 12.5px;
+  color: $color-text-muted;
+  padding: 0 4px;
 }
 
-// Document rows --------------------------------------------------------------
+.countPill {
+  background: $color-accent-soft;
+  color: $color-accent;
+  font-weight: 800;
+  border-radius: 14px;
+  padding: 5px 14px;
+  white-space: nowrap;
+}
+
+.clearLink {
+  color: $color-accent;
+  font-weight: 700;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+// ===== Danh sách tài liệu =====
 .docList {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
 }
 
 .docRow {
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
+  align-items: center;
   gap: 16px;
-  padding: 14px 16px;
   background: $color-surface;
   border: 1px solid $color-border;
-  border-radius: $radius-card;
-  transition: border-color 120ms ease, box-shadow 160ms ease;
+  border-radius: $radius-row;
+  padding: 14px 18px;
+  transition: box-shadow 0.15s, border-color 0.15s;
 
   &:hover {
+    box-shadow: $shadow-row-hover;
     border-color: $color-border-strong;
-    box-shadow: $shadow-soft;
   }
 }
 
 .docTitle {
-  display: flex;
-  align-items: center;
-  gap: 10px;
+  display: block;
   font-size: 14px;
-  font-weight: 500;
-  line-height: 1.3;
+  font-weight: 700;
+  color: $color-text;
 
   a {
     color: $color-text;
     text-decoration: none;
 
     &:hover {
-      color: $color-accent-strong;
+      color: $color-accent-dark;
       text-decoration: underline;
     }
   }
 }
 
 .docMeta {
+  display: block;
+  font-size: 11.5px;
+  color: $color-text-faint;
+  margin-top: 2px;
+  word-break: break-all;
+}
+
+.docChips {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  max-width: 340px;
+}
+
+.extBadge {
+  flex: none;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  font-weight: 800;
+}
+
+.rowActions {
+  display: flex;
+  gap: 6px;
+  flex: none;
+}
+
+.sqBtn {
+  width: 34px;
+  height: 34px;
+  border: 1px solid $color-input-border;
+  border-radius: $radius-btn;
+  background: $color-surface;
+  display: grid;
+  place-items: center;
+  color: $color-accent;
+  font-size: 14px;
+  cursor: pointer;
+  padding: 0;
+
+  &:hover {
+    background: $color-accent-mist;
+  }
+}
+
+.sqBtnDanger {
+  border-color: $color-danger-border;
+  color: $color-danger;
+
+  &:hover {
+    background: #fdf1f0;
+  }
+}
+
+.emptyBox {
+  text-align: center;
+  padding: 40px;
+  color: #8b968d;
+  font-size: 13.5px;
+  background: $color-surface;
+  border: 1px dashed #d5dccf;
+  border-radius: $radius-row;
+}
+
+// ===== Tải lên =====
+.uploadGrid {
+  display: grid;
+  grid-template-columns: 1fr 330px;
+  gap: 18px;
+  align-items: start;
+}
+
+.uploadSide {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  position: sticky;
+  top: 16px;
+}
+
+.stepHeader {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.stepNumber {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: $color-accent;
+  color: #ffffff;
+  display: grid;
+  place-items: center;
+  font-size: 12.5px;
+  font-weight: 800;
+  flex: none;
+}
+
+.stepLabel {
+  font-size: 15px;
+  font-weight: 800;
+  color: $color-text;
+}
+
+.stepMeta {
+  margin-left: auto;
   font-size: 12px;
   color: $color-text-muted;
+
+  b {
+    color: $color-accent;
+  }
+}
+
+.stepMetaAccent {
+  margin-left: auto;
+  font-size: 12px;
+  color: $color-accent;
+  font-weight: 700;
+}
+
+.dropZone {
+  border: 2px dashed #b9cfc0;
+  border-radius: $radius-input;
+  background: #f6faf6;
+  padding: 26px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.16s ease;
+
+  &:hover {
+    background: $color-accent-mist;
+    border-color: $color-accent;
+  }
+}
+
+.dropZoneActive {
+  background: $color-accent-mist;
+  border-color: $color-accent;
+}
+
+.dropZoneTitle {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: $color-text;
+
+  span {
+    color: $color-accent;
+    text-decoration: underline;
+  }
+}
+
+.dropZoneHint {
+  font-size: 11.5px;
+  color: $color-text-faint;
   margin-top: 4px;
 }
 
-// Admin row (hashtag CRUD) ---------------------------------------------------
-.adminRow {
+.fileRow {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 12px;
+  border: 1px solid #e8ece4;
+  border-radius: 10px;
   padding: 10px 14px;
-  background: $color-surface;
-  border: 1px solid $color-border;
-  border-radius: $radius-input;
+  font-size: 12.5px;
 }
 
-// Misc -----------------------------------------------------------------------
+.fileRowName {
+  font-weight: 700;
+  color: $color-text;
+  flex: 1;
+  min-width: 0;
+  word-break: break-all;
+}
+
+.fileRowSize {
+  color: $color-text-faint;
+  white-space: nowrap;
+}
+
+.fileRowRemove {
+  color: $color-danger;
+  font-weight: 800;
+  cursor: pointer;
+  padding: 4px;
+}
+
+.summaryRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 12.5px;
+  color: #4b5a50;
+
+  b {
+    color: $color-text;
+  }
+}
+
+.summaryChips {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.divider {
+  height: 1px;
+  background: #eef1ea;
+  margin: 14px 0;
+}
+
+.uploadBtn {
+  width: 100%;
+  height: 44px;
+  border: none;
+  border-radius: 11px;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+  background: $color-accent;
+  color: #ffffff;
+
+  &:disabled {
+    background: #dbe2d6;
+    color: #98a49b;
+    cursor: default;
+  }
+}
+
+.uploadNote {
+  font-size: 11px;
+  color: $color-text-faint;
+  margin-top: 10px;
+  line-height: 1.5;
+  text-align: center;
+}
+
+.tipBox {
+  background: $color-accent-mist;
+  border: 1px solid #d0e4d4;
+  border-radius: $radius-row;
+  padding: 14px 16px;
+  font-size: 12px;
+  color: #3c5a45;
+  line-height: 1.55;
+
+  b {
+    color: $color-accent;
+  }
+}
+
+.successBanner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: $color-accent-soft;
+  border: 1px solid #bcd9c4;
+  border-radius: $radius-input;
+  padding: 12px 16px;
+  font-size: 13px;
+  color: $color-accent;
+  font-weight: 600;
+  margin-bottom: 16px;
+}
+
+.successBannerLink {
+  margin-left: auto;
+  text-decoration: underline;
+  cursor: pointer;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.errorBanner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #fdf1f0;
+  border: 1px solid $color-danger-border;
+  border-radius: $radius-input;
+  padding: 12px 16px;
+  font-size: 13px;
+  color: $color-danger;
+  font-weight: 600;
+  margin-bottom: 16px;
+}
+
+// ===== Quản trị =====
+.warnBanner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #fdf6e7;
+  border: 1px solid #f0e2bd;
+  border-radius: 11px;
+  padding: 10px 14px;
+  font-size: 12.5px;
+  color: #7a5c14;
+}
+
+.cardTitle {
+  font-size: 14px;
+  font-weight: 800;
+  color: $color-text;
+  margin-bottom: 12px;
+}
+
+.addTagGrid {
+  display: grid;
+  grid-template-columns: 210px 1fr 110px;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.textInput {
+  height: 40px;
+  background: $color-surface-alt;
+  border: 1px solid $color-input-border;
+  border-radius: 10px;
+  padding: 0 12px;
+  font-size: 12.5px;
+  color: $color-text;
+  outline: none;
+  box-sizing: border-box;
+  width: 100%;
+
+  &:focus {
+    border-color: $color-accent;
+  }
+}
+
+.primaryBtn {
+  height: 40px;
+  background: $color-accent;
+  color: #ffffff;
+  border: none;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+
+  &:disabled {
+    background: #dbe2d6;
+    color: #98a49b;
+    cursor: default;
+  }
+}
+
+.groupPickRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.groupPickLabel {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: $color-text-muted;
+}
+
+.groupCard {
+  background: $color-surface;
+  border: 1px solid $color-border;
+  border-radius: $radius-card;
+  overflow: hidden;
+  box-shadow: $shadow-card;
+}
+
+.groupCardHead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 18px;
+}
+
+.groupCardDot {
+  width: 9px;
+  height: 9px;
+  border-radius: 3px;
+  flex: none;
+}
+
+.groupCardTitle {
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+}
+
+.groupCardCount {
+  font-size: 11.5px;
+  color: $color-text-muted;
+}
+
+.tagRow {
+  display: grid;
+  grid-template-columns: 180px 1fr 90px;
+  align-items: center;
+  padding: 11px 18px;
+  border-top: 1px solid #f0f3ed;
+  font-size: 12.5px;
+  gap: 10px;
+}
+
+.tagRowDesc {
+  color: $color-text-muted;
+  min-width: 0;
+}
+
+.tagRowDescEmpty {
+  color: #a5b0a7;
+  font-style: italic;
+}
+
+.tagRowActions {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.sqBtnSm {
+  width: 30px;
+  height: 30px;
+  font-size: 12px;
+}
+
+.tagRowEdit {
+  border-top: 1px solid #f0f3ed;
+  padding: 14px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: #f7faf7;
+}
+
+// ===== Sửa tag tài liệu =====
+.editRow {
+  border-top: 1px solid #f0f3ed;
+
+  &:first-child {
+    border-top: none;
+  }
+}
+
+.editRowActive {
+  background: #f2f9f3;
+}
+
+.editRowMain {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 13px 18px;
+}
+
+.editBadge {
+  font-size: 11px;
+  font-weight: 800;
+  color: $color-accent;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+.editTagBtn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 14px;
+  border: 1.5px solid $color-accent;
+  color: $color-accent;
+  background: $color-surface;
+  border-radius: $radius-btn;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+
+  &:hover {
+    background: $color-accent-mist;
+  }
+}
+
+.editPanel {
+  padding: 2px 18px 16px 68px;
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+}
+
+.editPanelLabel {
+  font-size: 10.5px;
+  font-weight: 800;
+  color: $color-text-muted;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  width: 80px;
+  flex: none;
+}
+
+.editPanelRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.solidBtn {
+  display: grid;
+  place-items: center;
+  height: 34px;
+  padding: 0 18px;
+  background: $color-accent;
+  color: #ffffff;
+  border: none;
+  border-radius: $radius-btn;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+
+  &:disabled {
+    background: #dbe2d6;
+    color: #98a49b;
+    cursor: default;
+  }
+}
+
+.ghostBtn {
+  display: grid;
+  place-items: center;
+  height: 34px;
+  padding: 0 14px;
+  border: 1px solid $color-input-border;
+  background: $color-surface;
+  color: $color-text-muted;
+  border-radius: $radius-btn;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+// ===== Khác =====
 .muted {
   color: $color-text-muted;
   font-size: 12px;
   line-height: 1.4;
 }
 
-.countPill {
-  display: inline-flex;
-  align-items: center;
-  padding: 2px 10px;
-  border-radius: $radius-pill;
-  background: $color-surface-alt;
-  color: $color-text-muted;
-  font-size: 12px;
-  font-weight: 500;
-}
-
-.clearLink {
-  font-size: 12px;
-  color: $color-accent;
-  cursor: pointer;
-  margin-left: 6px;
-
-  &:hover {
-    color: $color-accent-strong;
-    text-decoration: underline;
-  }
-}
-
-.stepHeader {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 4px;
-}
-
-.stepNumber {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  background: $color-accent-soft;
-  color: $color-accent-strong;
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.stepLabel {
-  font-size: 13px;
-  font-weight: 600;
-  color: $color-text;
-}
-
-// Pagination ----------------------------------------------------------------
 .pagination {
   margin-top: 4px;
   padding: 8px 4px 4px;
@@ -454,8 +1031,8 @@ $shadow-hover: 0 1px 2px rgba(20, 18, 14, 0.06), 0 8px 20px rgba(20, 18, 14, 0.0
   min-width: 32px;
   height: 32px;
   padding: 0 10px;
-  border-radius: $radius-input;
-  border: 1px solid $color-border;
+  border-radius: $radius-btn;
+  border: 1px solid $color-input-border;
   background: $color-surface;
   color: $color-text;
   font-size: 13px;
@@ -465,7 +1042,7 @@ $shadow-hover: 0 1px 2px rgba(20, 18, 14, 0.06), 0 8px 20px rgba(20, 18, 14, 0.0
 
   &:hover:not(:disabled) {
     border-color: $color-accent;
-    color: $color-accent-strong;
+    color: $color-accent-dark;
     background: $color-accent-soft;
   }
 }
@@ -491,4 +1068,24 @@ $shadow-hover: 0 1px 2px rgba(20, 18, 14, 0.06), 0 8px 20px rgba(20, 18, 14, 0.0
   color: $color-text-muted;
   font-size: 13px;
   user-select: none;
+}
+
+@media (max-width: 900px) {
+  .uploadGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .uploadSide {
+    position: static;
+  }
+
+  .groupLabel {
+    width: 100%;
+    margin-top: 0;
+  }
+
+  .groupRow {
+    flex-direction: column;
+    gap: 6px;
+  }
 }

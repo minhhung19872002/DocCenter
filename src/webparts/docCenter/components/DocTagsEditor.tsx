@@ -1,17 +1,11 @@
 import * as React from 'react';
-import {
-  Stack, TextField, PrimaryButton, DefaultButton,
-  MessageBar, MessageBarType, Spinner, SpinnerSize, Icon, Link,
-  Dialog, DialogType, DialogFooter
-} from '@fluentui/react';
-import {
-  initializeFileTypeIcons, getFileTypeIconProps
-} from '@fluentui/react-file-type-icons';
-import { IHashtag, IDocument, groupHashtagsByCategory } from '../services/types';
+import { Spinner, SpinnerSize, MessageBar, MessageBarType } from '@fluentui/react';
+import { IHashtag, IDocument } from '../services/types';
 import { SharePointService } from '../services/SharePointService';
+import { CatChip, ExtBadge } from './ui';
 import styles from './DocCenter.module.scss';
 
-initializeFileTypeIcons();
+const MAX_QUICK_ADD = 14;
 
 interface IProps {
   libraryTitle: string;
@@ -23,7 +17,7 @@ interface IState {
   loading: boolean;
   docs: IDocument[];
   nameQuery: string;
-  editingDoc?: IDocument;
+  editingId?: number;
   editingTagIds: number[];
   editFilter: string;
   savingEdit: boolean;
@@ -56,11 +50,6 @@ export class DocTagsEditor extends React.Component<IProps, IState> {
     }
   };
 
-  private getExtension(name: string): string {
-    const dot = name.lastIndexOf('.');
-    return dot >= 0 ? name.substring(dot + 1).toLowerCase() : '';
-  }
-
   private buildAbsoluteUrl(serverRelativeUrl: string): string {
     const origin = this.props.siteUrl.replace(/^(https?:\/\/[^/]+).*$/, '$1');
     const absolute = serverRelativeUrl.startsWith('/') ? `${origin}${serverRelativeUrl}` : serverRelativeUrl;
@@ -69,7 +58,7 @@ export class DocTagsEditor extends React.Component<IProps, IState> {
 
   private openEdit = (doc: IDocument): void => {
     this.setState({
-      editingDoc: doc,
+      editingId: doc.Id,
       editingTagIds: doc.Hashtags.map(t => t.Id),
       editFilter: '',
       savingEdit: false,
@@ -79,22 +68,25 @@ export class DocTagsEditor extends React.Component<IProps, IState> {
 
   private cancelEdit = (): void => {
     if (this.state.savingEdit) return;
-    this.setState({ editingDoc: undefined, editingTagIds: [], editError: undefined });
+    this.setState({ editingId: undefined, editingTagIds: [], editError: undefined });
   };
 
-  private toggleEditTag = (id: number): void => {
-    const set = new Set(this.state.editingTagIds);
-    if (set.has(id)) set.delete(id); else set.add(id);
-    this.setState({ editingTagIds: Array.from(set) });
+  private removeEditTag = (id: number): void => {
+    this.setState({ editingTagIds: this.state.editingTagIds.filter(x => x !== id) });
+  };
+
+  private addEditTag = (id: number): void => {
+    if (this.state.editingTagIds.indexOf(id) !== -1) return;
+    this.setState({ editingTagIds: [...this.state.editingTagIds, id] });
   };
 
   private saveEdit = async (): Promise<void> => {
-    const { editingDoc, editingTagIds } = this.state;
-    if (!editingDoc) return;
+    const { editingId, editingTagIds } = this.state;
+    if (editingId == null) return;
     this.setState({ savingEdit: true, editError: undefined });
     try {
-      await SharePointService.updateDocumentHashtags(this.props.libraryTitle, editingDoc.Id, editingTagIds);
-      this.setState({ editingDoc: undefined, editingTagIds: [], savingEdit: false });
+      await SharePointService.updateDocumentHashtags(this.props.libraryTitle, editingId, editingTagIds);
+      this.setState({ editingId: undefined, editingTagIds: [], savingEdit: false });
       await this.reload();
     } catch (e) {
       this.setState({
@@ -104,138 +96,147 @@ export class DocTagsEditor extends React.Component<IProps, IState> {
     }
   };
 
+  private renderEditPanel(): React.ReactElement {
+    const { editingTagIds, editFilter, savingEdit, editError } = this.state;
+    const currentTags = this.props.hashtags.filter(t => editingTagIds.indexOf(t.Id) !== -1);
+    const q = editFilter.trim().toLowerCase();
+    const addable = this.props.hashtags
+      .filter(t => editingTagIds.indexOf(t.Id) === -1)
+      .filter(t => !q
+        || t.Title.toLowerCase().includes(q)
+        || (t.Description || '').toLowerCase().includes(q))
+      .slice(0, MAX_QUICK_ADD);
+
+    return (
+      <div className={styles.editPanel}>
+        <div className={styles.editPanelRow}>
+          <span className={styles.editPanelLabel}>Tag hiện tại</span>
+          {currentTags.length === 0 && <span className={styles.muted}>Chưa gắn hashtag nào</span>}
+          {currentTags.map(t => (
+            <CatChip
+              key={t.Id}
+              tag={t}
+              small
+              selected
+              showRemove
+              onClick={() => !savingEdit && this.removeEditTag(t.Id)}
+            />
+          ))}
+        </div>
+        <div className={styles.editPanelRow} style={{ alignItems: 'flex-start' }}>
+          <span className={styles.editPanelLabel} style={{ marginTop: 5 }}>Thêm nhanh</span>
+          <div className={styles.tagWrap}>
+            {addable.map(t => (
+              <CatChip
+                key={t.Id}
+                tag={t}
+                small
+                prefix="+ "
+                onClick={() => !savingEdit && this.addEditTag(t.Id)}
+              />
+            ))}
+            <input
+              className={styles.textInput}
+              style={{ width: 170, height: 28, background: '#fff', fontSize: 11.5 }}
+              placeholder="lọc hashtag…"
+              value={editFilter}
+              disabled={savingEdit}
+              onChange={e => this.setState({ editFilter: e.target.value })}
+            />
+          </div>
+        </div>
+        {editError && <MessageBar messageBarType={MessageBarType.error}>{editError}</MessageBar>}
+        <div style={{ display: 'flex', gap: 8, marginTop: 2 }}>
+          <button type="button" className={styles.solidBtn} onClick={() => void this.saveEdit()} disabled={savingEdit}>
+            {savingEdit ? 'Đang lưu…' : 'Lưu thay đổi'}
+          </button>
+          <button type="button" className={styles.ghostBtn} onClick={this.cancelEdit} disabled={savingEdit}>
+            Huỷ
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   public render(): React.ReactElement {
-    const {
-      loading, docs, nameQuery, editingDoc, editingTagIds, editFilter, savingEdit, editError, loadError
-    } = this.state;
+    const { loading, docs, nameQuery, editingId, loadError } = this.state;
 
     const filteredDocs = nameQuery
       ? docs.filter(d => d.Name.toLowerCase().includes(nameQuery.toLowerCase()))
       : docs;
-
-    const filteredEditTags = this.props.hashtags.filter(t => {
-      if (!editFilter) return true;
-      const q = editFilter.toLowerCase();
-      return t.Title.toLowerCase().includes(q)
-        || (t.Description || '').toLowerCase().includes(q);
-    });
 
     if (loading) {
       return <Spinner size={SpinnerSize.large} label="Đang tải tài liệu..." styles={{ root: { marginTop: 24 } }} />;
     }
 
     return (
-      <Stack tokens={{ childrenGap: 16 }} className={styles.section}>
-        <MessageBar messageBarType={MessageBarType.info}>
-          Sửa hashtag cho bất kỳ tài liệu đã tải lên. Thay đổi được lưu tức thì.
-        </MessageBar>
-
-        <div className={styles.card}>
-          <Stack horizontal tokens={{ childrenGap: 8 }} verticalAlign="end">
-            <Stack.Item grow>
-              <TextField
-                label="Tìm tài liệu"
-                placeholder="Nhập một phần tên file..."
-                iconProps={{ iconName: 'Search' }}
-                value={nameQuery}
-                onChange={(_, v) => this.setState({ nameQuery: v || '' })}
-              />
-            </Stack.Item>
-            <DefaultButton text="Làm mới" iconProps={{ iconName: 'Refresh' }} onClick={this.reload} />
-          </Stack>
+      <div className={styles.section}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div className={`${styles.searchBox} ${styles.searchBoxSmall}`} style={{ flex: 1, maxWidth: 420 }}>
+            <span className={styles.searchIcon}>⌕</span>
+            <input
+              placeholder="Nhập một phần tên file…"
+              value={nameQuery}
+              onChange={e => this.setState({ nameQuery: e.target.value })}
+            />
+          </div>
+          <span className={styles.muted}>{filteredDocs.length} tài liệu</span>
+          <button type="button" className={styles.sqBtn} title="Làm mới" onClick={() => void this.reload()}>
+            ⟳
+          </button>
         </div>
 
         {loadError && <MessageBar messageBarType={MessageBarType.error}>{loadError}</MessageBar>}
 
-        <Stack horizontal verticalAlign="center" tokens={{ childrenGap: 8 }}>
-          <span className={styles.countPill}>{filteredDocs.length} tài liệu</span>
-        </Stack>
-
         {filteredDocs.length === 0 && (
-          <MessageBar messageBarType={MessageBarType.info}>Không tìm thấy tài liệu.</MessageBar>
+          <div className={styles.emptyBox}>Không tìm thấy tài liệu.</div>
         )}
 
-        <div className={styles.docList}>
-          {filteredDocs.map(d => (
-            <div key={d.Id} className={styles.docRow}>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div className={styles.docTitle}>
-                  <Icon {...getFileTypeIconProps({ extension: this.getExtension(d.Name), size: 20 })} />
-                  <Link href={this.buildAbsoluteUrl(d.ServerRelativeUrl)} target="_blank">
-                    {d.Name}
-                  </Link>
-                </div>
-                <div className={styles.docMeta}>
-                  {d.SizeKB ? `${d.SizeKB} KB · ` : ''}
-                  {new Date(d.Modified).toLocaleString()}{d.CreatedBy ? ` · ${d.CreatedBy}` : ''}
-                </div>
-                <div className={styles.tagWrap}>
-                  {d.Hashtags.length === 0 && <span className={styles.muted}>Không có hashtag</span>}
-                  {d.Hashtags.map(t => (
-                    <span key={t.Id} className={`${styles.tagPill} ${styles.tagPillReadonly}`}>#{t.Title}</span>
-                  ))}
-                </div>
-              </div>
-              <PrimaryButton
-                text="Sửa tag"
-                iconProps={{ iconName: 'Edit' }}
-                onClick={() => this.openEdit(d)}
-              />
-            </div>
-          ))}
-        </div>
-
-        <Dialog
-          hidden={!editingDoc}
-          onDismiss={this.cancelEdit}
-          minWidth={520}
-          maxWidth={720}
-          dialogContentProps={{
-            type: DialogType.normal,
-            title: 'Sửa hashtag',
-            subText: editingDoc ? `Cho: ${editingDoc.Name}` : ''
-          }}
-        >
-          <Stack tokens={{ childrenGap: 10 }}>
-            <TextField
-              placeholder="Lọc hashtag..."
-              iconProps={{ iconName: 'Filter' }}
-              value={editFilter}
-              onChange={(_, v) => this.setState({ editFilter: v || '' })}
-              disabled={savingEdit}
-            />
-            <div style={{ maxHeight: 320, overflowY: 'auto' }}>
-              {filteredEditTags.length === 0 && <span className={styles.muted}>Không tìm thấy hashtag.</span>}
-              {groupHashtagsByCategory(filteredEditTags).map(g => (
-                <div key={g.name} style={{ marginTop: 6 }}>
-                  <div className={styles.muted} style={{ fontWeight: 600, marginBottom: 4 }}>{g.name}</div>
-                  <div className={styles.tagWrap} style={{ marginTop: 0 }}>
-                    {g.items.map(t => {
-                      const selected = editingTagIds.indexOf(t.Id) !== -1;
-                      return (
-                        <span
-                          key={t.Id}
-                          className={`${styles.tagPill} ${selected ? styles.tagPillSelected : ''}`}
-                          title={t.Description || ''}
-                          onClick={() => !savingEdit && this.toggleEditTag(t.Id)}
+        {filteredDocs.length > 0 && (
+          <div className={styles.groupCard}>
+            {filteredDocs.map(d => {
+              const isEditing = editingId === d.Id;
+              return (
+                <div key={d.Id} className={`${styles.editRow} ${isEditing ? styles.editRowActive : ''}`}>
+                  <div className={styles.editRowMain}>
+                    <ExtBadge fileName={d.Name} size={34} />
+                    <span style={{ flex: 1, minWidth: 0 }}>
+                      <span className={styles.docTitle} style={{ fontSize: 13 }}>
+                        <a
+                          href={this.buildAbsoluteUrl(d.ServerRelativeUrl)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          data-interception="off"
                         >
-                          #{t.Title}
+                          {d.Name}
+                        </a>
+                      </span>
+                      <span className={styles.docMeta} style={{ fontSize: 11 }}>
+                        {d.SizeKB ? `${d.SizeKB} KB · ` : ''}
+                        {new Date(d.Modified).toLocaleString()}{d.CreatedBy ? ` · ${d.CreatedBy}` : ''}
+                      </span>
+                    </span>
+                    {!isEditing && (
+                      <>
+                        <span className={styles.docChips} style={{ maxWidth: 320 }}>
+                          {d.Hashtags.map(t => (
+                            <CatChip key={t.Id} tag={t} small readonly />
+                          ))}
                         </span>
-                      );
-                    })}
+                        <button type="button" className={styles.editTagBtn} onClick={() => this.openEdit(d)}>
+                          ✎ Sửa tag
+                        </button>
+                      </>
+                    )}
+                    {isEditing && <span className={styles.editBadge}>ĐANG SỬA</span>}
                   </div>
+                  {isEditing && this.renderEditPanel()}
                 </div>
-              ))}
-            </div>
-            <span className={styles.muted}>Đã chọn {editingTagIds.length}</span>
-            {editError && <MessageBar messageBarType={MessageBarType.error}>{editError}</MessageBar>}
-          </Stack>
-          <DialogFooter>
-            <PrimaryButton text={savingEdit ? 'Đang lưu...' : 'Lưu'} onClick={this.saveEdit} disabled={savingEdit} />
-            <DefaultButton text="Huỷ" onClick={this.cancelEdit} disabled={savingEdit} />
-          </DialogFooter>
-        </Dialog>
-      </Stack>
+              );
+            })}
+          </div>
+        )}
+      </div>
     );
   }
 }
