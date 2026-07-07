@@ -66,6 +66,21 @@ $font-stack: "Be Vietnam Pro", "Segoe UI", system-ui, -apple-system, sans-serif;
     padding: 0 !important;
     max-width: none !important;
   }
+
+  // SharePoint caps modern-page sections at ~1470px on wrappers whose class
+  // names vary by version — catch them all so the app spans the full viewport.
+  body.doc-center-app-page #spPageCanvasContent,
+  body.doc-center-app-page [class*="mainContent"],
+  body.doc-center-app-page [class*="SPCanvas"],
+  body.doc-center-app-page [class*="CanvasComponent"],
+  body.doc-center-app-page [class*="CanvasZone"],
+  body.doc-center-app-page [class*="CanvasSection"],
+  body.doc-center-app-page [class*="ControlZone"],
+  body.doc-center-app-page [class*="canvasWrapper"],
+  body.doc-center-app-page [class*="flexibleCanvas"] {
+    max-width: none !important;
+    width: 100% !important;
+  }
 }
 
 .docCenter {
